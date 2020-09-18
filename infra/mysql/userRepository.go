@@ -13,7 +13,7 @@ type userRepository struct {
 
 type User struct {
 	ID        int64     `gorm:"primaryKey;autoIncrement"`
-	Email     string    `gorm:"not null;default: ''"`
+	Email     string    `gorm:"not null;default: '';index:user_email_idx"`
 	Status    string    `gorm:"not null;default: ''"`
 	CreatedAt time.Time `gorm:"not null;"`
 	UpdatedAt time.Time `gorm:"not null"`
@@ -39,7 +39,7 @@ func (repo userRepository) Create(user model.User, password model.UserPasswordDi
 		if err := tx.Create(&u).Error; err != nil {
 			return err
 		}
-		uPassword := FromUserPasswordModel(model.NewUserPassowrd(model.UserID(u.ID), password))
+		uPassword := FromUserAuthenticationModel(model.NewUserAuthentication(model.UserID(u.ID), password))
 		if err := tx.Create(&uPassword).Error; err != nil {
 			return err
 		}

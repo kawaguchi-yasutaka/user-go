@@ -1,6 +1,6 @@
 package model
 
-type UserPassword struct {
+type UserAuthentication struct {
 	UserID         UserID
 	PasswordDigest UserPasswordDigest
 }
@@ -10,8 +10,8 @@ type (
 	UserPasswordDigest string
 )
 
-func NewUserPassowrd(userId UserID, passwordDigest UserPasswordDigest) UserPassword {
-	return UserPassword{
+func NewUserAuthentication(userId UserID, passwordDigest UserPasswordDigest) UserAuthentication {
+	return UserAuthentication{
 		UserID:         userId,
 		PasswordDigest: passwordDigest,
 	}
