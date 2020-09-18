@@ -5,20 +5,22 @@ import (
 	"user-go/domain/model"
 )
 
-type userService struct {
+type UserService struct {
 	userRepository interfaces.IUserRepository
+	hasher         interfaces.IHasher
 }
 
-func NewUserService(userRepository interfaces.IUserRepository) userService {
-	return userService{
+func NewUserService(userRepository interfaces.IUserRepository, hasher interfaces.IHasher) UserService {
+	return UserService{
 		userRepository: userRepository,
+		hasher:         hasher,
 	}
 }
 
-func (service userService) Create(email model.UserEmail, password model.UserPassword) error {
-	pDigest, err := model.NewPasswordDigest(password)
+func (service UserService) Create(email model.UserEmail, password model.UserRawPassword) error {
+	pDigest, err := service.hasher.GeneratePasswordDigest(password)
 	if err != nil {
 		return err
 	}
-	return service.userRepository.Create(model.NewUser(email, pDigest))
+	return service.userRepository.Create(model.NewUser(email), pDigest)
 }

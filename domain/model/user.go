@@ -1,38 +1,25 @@
 package model
 
-import "golang.org/x/crypto/bcrypt"
-
 type User struct {
-	Email          UserEmail
-	PasswordDigest UserPasswordDigest
-	Status         UserStatus
+	ID     UserID
+	Email  UserEmail
+	Status UserStatus
 }
 
 type (
-	UserStatus         string
-	UserEmail          string
-	UserPasswordDigest string
+	UserID     int64
+	UserStatus string
+	UserEmail  string
 )
-
-type UserPassword string
 
 const (
 	UserStatusInitialized UserStatus = "initialized"
 	UserStatusActivated   UserStatus = "activated" //認証済み
 )
 
-func NewUser(email UserEmail, digest UserPasswordDigest) User {
+func NewUser(email UserEmail) User {
 	return User{
-		Email:          email,
-		PasswordDigest: digest,
-		Status:         UserStatusInitialized,
+		Email:  email,
+		Status: UserStatusInitialized,
 	}
-}
-
-func NewPasswordDigest(password UserPassword) (UserPasswordDigest, error) {
-	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return "", nil
-	}
-	return UserPasswordDigest(hashed), nil
 }
