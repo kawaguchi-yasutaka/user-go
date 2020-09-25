@@ -13,7 +13,7 @@ type userRepository struct {
 
 type User struct {
 	ID        int64     `gorm:"primaryKey;autoIncrement"`
-	Email     string    `gorm:"not null;default: '';index:user_email_idx"`
+	Email     string    `gorm:"not null;unique;default: '';index:user_email_idx"`
 	Status    string    `gorm:"not null;default: ''"`
 	CreatedAt time.Time `gorm:"not null;"`
 	UpdatedAt time.Time `gorm:"not null"`

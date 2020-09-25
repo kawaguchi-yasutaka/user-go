@@ -16,3 +16,10 @@ func NewUserAuthentication(userId UserID, passwordDigest UserPasswordDigest) Use
 		PasswordDigest: passwordDigest,
 	}
 }
+
+func NewUserRawPassword(password string) (UserRawPassword, error) {
+	if err := Validate.Var(password, "required,min=8"); err != nil {
+		return "", err
+	}
+	return UserRawPassword(password), nil
+}

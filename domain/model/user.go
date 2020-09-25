@@ -23,3 +23,10 @@ func NewUser(email UserEmail) User {
 		Status: UserStatusInitialized,
 	}
 }
+
+func NewUserEmail(email string) (UserEmail, error) {
+	if err := Validate.Var(email, "required,email"); err != nil {
+		return "", err
+	}
+	return UserEmail(email), nil
+}
