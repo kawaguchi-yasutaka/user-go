@@ -1,12 +1,12 @@
 package main
 
 import (
-	"fmt"
+	"user-go/config"
 	"user-go/initializer"
 )
 
 func main() {
-	fmt.Println("hello world")
-	db := initializer.InitDbConnection()
+	conf := config.SetConfig()
+	db := initializer.InitDbConnection(conf)
 	initializer.Migrate(db)
 }
