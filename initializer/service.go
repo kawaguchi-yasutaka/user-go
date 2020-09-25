@@ -1,6 +1,8 @@
 package initializer
 
-import "user-go/domain/service"
+import (
+	"user-go/domain/service"
+)
 
 type Service struct {
 	UserService service.UserService
@@ -8,6 +10,6 @@ type Service struct {
 
 func NewService(infra Infra, repository Repository) Service {
 	return Service{
-		UserService: service.NewUserService(repository.userRepository, infra.hasher),
+		UserService: service.NewUserService(repository.userRepository, repository.userAuthenticationRepository, infra.hasher),
 	}
 }
