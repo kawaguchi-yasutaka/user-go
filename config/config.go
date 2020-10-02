@@ -7,7 +7,8 @@ import (
 )
 
 type Config struct {
-	DB DBConfig
+	DB  DBConfig
+	APP APPConfig
 }
 
 type DBConfig struct {
@@ -18,11 +19,19 @@ type DBConfig struct {
 	Table        string
 }
 
+type APPConfig struct {
+	URL           string
+	EmailAddress  string
+	EmailPassword string
+	EmailHost     string
+}
+
 func SetConfig() Config {
 	env := os.Getenv("USER_GO_ENV")
 	loadEnv(env)
 	config := Config{}
 	config.setDBConfig()
+	config.setAppConfig()
 	return config
 }
 
@@ -39,4 +48,11 @@ func (config *Config) setDBConfig() {
 	config.DB.Address = os.Getenv("DB_ADDRESS")
 	config.DB.Port = os.Getenv("DB_PORT")
 	config.DB.Table = os.Getenv("DB_TABLE")
+}
+
+func (config *Config) setAppConfig() {
+	config.APP.URL = os.Getenv("APP_URL")
+	config.APP.EmailAddress = os.Getenv("APP_EMAIL_ADDRESS")
+	config.APP.EmailPassword = os.Getenv("APP_EMAIL_PASSWORD")
+	config.APP.EmailHost = os.Getenv("APP_EMAIL_HOST")
 }

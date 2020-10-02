@@ -33,14 +33,14 @@ func NewUserRepository(db *gorm.DB) interfaces.IUserRepository {
 	}
 }
 
-func (repo userRepository) Create(user model.User, password model.UserPasswordDigest) error {
-	return repo.db.Transaction(func(tx *gorm.DB) error {
-		u := FromUserModel(user)
+func (repo userRepository) Create(user model.User, password model.UserPasswordDigest) (model.UserID, error) {
+	u := FromUserModel(user)
+	return model.UserID(u.ID), repo.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(&u).Error; err != nil {
 			return err
 		}
 		uPassword := FromUserAuthenticationModel(model.NewUserAuthentication(model.UserID(u.ID), password))
-		if err := tx.Create(&uPassword).Error; err != nil {
+		if err := tx.Create(&uPassword).Debug().Error; err != nil {
 			return err
 		}
 		return nil

@@ -9,7 +9,7 @@ import (
 func main() {
 	conf := config.SetConfig()
 	db := initializer.InitDbConnection(conf)
-	infra := initializer.NewInfra()
+	infra := initializer.NewInfra(conf)
 	repository := initializer.InitRepository(db)
 	service := initializer.NewService(infra, repository)
 	initializer.Migrate(db)

@@ -10,6 +10,11 @@ type Service struct {
 
 func NewService(infra Infra, repository Repository) Service {
 	return Service{
-		UserService: service.NewUserService(repository.userRepository, repository.userAuthenticationRepository, infra.hasher),
+		UserService: service.NewUserService(
+			repository.userRepository,
+			repository.userAuthenticationRepository,
+			infra.hasher,
+			infra.userMailer,
+		),
 	}
 }

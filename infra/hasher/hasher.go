@@ -16,7 +16,7 @@ func NewHahser() interfaces.IHasher {
 func (hahser Hasher) GeneratePasswordDigest(password model.UserRawPassword) (model.UserPasswordDigest, error) {
 	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 	return model.UserPasswordDigest(hashed), nil
 }
