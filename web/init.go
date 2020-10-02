@@ -27,5 +27,6 @@ func Init(service initializer.Service) {
 	e := echo.New()
 	e.HTTPErrorHandler = customHTTPErrorHandler
 	e.POST("/users", userHandler.Create)
+	e.GET("/activate_users", userHandler.Activate)
 	e.Logger.Fatal(e.Start(":8080"))
 }

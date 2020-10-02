@@ -50,3 +50,7 @@ func NewUserRawPassword(password string) (UserRawPassword, error) {
 	}
 	return UserRawPassword(password), nil
 }
+
+func IsActivationCodeExpired(auth UserAuthentication) bool {
+	return unixtime.UnixTime(auth.ActivationCodeExpiresAt) <= unixtime.Now()
+}

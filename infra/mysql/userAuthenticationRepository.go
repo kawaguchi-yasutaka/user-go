@@ -8,9 +8,9 @@ import (
 
 type UserAuthentication struct {
 	UserID                 int64  `gorm:"primaryKey"`
-	PasswordDigest         string `gorm:"not null;default: ''"`
-	ActivationCode         string `gorm:"not null:default: ''"`
-	ActivationCodeExpireAt int64  `gorm:"not null;default: ''"`
+	PasswordDigest         string `gorm:"not null;default:''"`
+	ActivationCode         string `gorm:"not null;default:''"`
+	ActivationCodeExpireAt int64  `gorm:"not null;default:0"`
 }
 
 type UserAuthenticationRepository struct {
@@ -49,10 +49,22 @@ func (repo UserAuthenticationRepository) Save(authentication model.UserAuthentic
 	return nil
 }
 
-func (repo UserAuthenticationRepository) FindByUserID(userID model.UserID) (model.UserAuthentication, error) {
+func (repo UserAuthenticationRepository) FindByUserID(
+	userID model.UserID,
+) (model.UserAuthentication, error) {
 	auth := UserAuthentication{}
 	//見つからない場合とdbのエラーを区別していない
 	if result := repo.db.Where("user_id = ?", int64(userID)).First(&auth); result.Error != nil {
+		return model.UserAuthentication{}, result.Error
+	}
+	return auth.ToModel(), nil
+}
+
+func (repo UserAuthenticationRepository) FindByActivateCode(
+	code model.UserActivationCode,
+) (model.UserAuthentication, error) {
+	auth := UserAuthentication{}
+	if result := repo.db.Where("activation_code = ?", string(code)).First(&auth); result.Error != nil {
 		return model.UserAuthentication{}, result.Error
 	}
 	return auth.ToModel(), nil

@@ -1,7 +1,7 @@
 package service
 
 import (
-	"log"
+	"fmt"
 	"user-go/domain/interfaces"
 	"user-go/domain/model"
 )
@@ -27,35 +27,50 @@ func NewUserService(
 	}
 }
 
-func (service UserService) Create(email model.UserEmail, password model.UserRawPassword) error {
+func (service UserService) Create(email model.UserEmail, password model.UserRawPassword) (model.UserID, error) {
 	pDigest, err := service.hasher.GeneratePasswordDigest(password)
 	if err != nil {
-		return err
+		return model.UserID(0), err
 	}
 	userId, err := service.userRepository.Create(model.NewUser(email), pDigest)
 	if err != nil {
-		return err
+		return model.UserID(0), err
 	}
 	code, expiresAt, err := model.NewAuthenticationCode()
 	if err != nil {
-		return err
+		return model.UserID(0), err
 	}
 	auth, err := service.userAuthenticationRepository.FindByUserID(userId)
 	if err != nil {
-		return err
+		return model.UserID(0), err
 	}
-	log.Printf("code: %v", code)
-	log.Printf("expiresAt: %v", expiresAt)
 
 	auth.UpdateActivationCode(code, expiresAt)
 	if err := service.userAuthenticationRepository.Save(auth); err != nil {
-		return err
+		return model.UserID(0), err
 	}
-	return service.userMailer.SendAuthenticationCode(email, code)
+	return userId, service.userMailer.SendAuthenticationCode(email, code)
 }
 
-func (service UserService) Activate() error {
-	return nil
+func (service UserService) Activate(code model.UserActivationCode) error {
+	auth, err := service.userAuthenticationRepository.FindByActivateCode(code)
+	if err != nil {
+		return err
+	}
+	if model.IsActivationCodeExpired(auth) {
+		return fmt.Errorf("code expired")
+	}
+	user, err := service.userRepository.FindById(auth.UserID)
+	if err != nil {
+		return err
+	}
+	if user.IsActivated() {
+		return fmt.Errorf("already activated")
+	}
+
+	user.Activate()
+
+	return service.userRepository.Save(user)
 }
 
 func (service UserService) ReSendActivateCodeEmail(userID model.UserID) error {
