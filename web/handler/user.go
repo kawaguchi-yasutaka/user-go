@@ -43,7 +43,34 @@ func (handler UserHandler) Activate(c echo.Context) error {
 	return c.NoContent(http.StatusNoContent)
 }
 
-//dbにあるか
-//期限内か
-//すでに認証済である。
-//activateに更新する。
+func (handler UserHandler) Login(c echo.Context) error {
+	req := request.UserLoginRequest{}
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+	email, err := model.NewUserEmail(req.Email)
+	if err != nil {
+		return err
+	}
+	password, err := model.NewUserRawPassword(req.Password)
+	if err != nil {
+		return err
+	}
+
+	sessionId, err := handler.UserService.Login(email, password)
+	if err != nil {
+		return err
+	}
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"sessionId": sessionId,
+	})
+}
+
+func (handler UserHandler) Logind(c echo.Context) error {
+	seesionId := c.Request().Header.Get("Authorization")
+	_, err := handler.UserService.Logind(model.UserSessionId(seesionId))
+	if err != nil {
+		return err
+	}
+	return c.NoContent(http.StatusNoContent)
+}

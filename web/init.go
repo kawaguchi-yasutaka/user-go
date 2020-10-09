@@ -1,23 +1,25 @@
 package web
 
 import (
-	"fmt"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"net/http"
 	"user-go/initializer"
+	"user-go/lib/myerror"
 	"user-go/web/handler"
 )
 
-func customHTTPErrorHandler(err error, c echo.Context) {
+func customErrorHandler(err error, c echo.Context) {
 	code := http.StatusInternalServerError
-	if he, ok := err.(*echo.HTTPError); ok {
-		code = he.Code
-	}
-	errorPage := fmt.Sprintf("%d.html", code)
-	if err := c.File(errorPage); err != nil {
-		c.Logger().Error(err)
+	errorType := "unknown"
+	message := err.Error()
+	if err, ok := err.(myerror.CustomError); ok {
+		code = err.StatusCode
+		errorType = string(err.ErrorType)
+		message = err.Message
 	}
 	c.Logger().Error(err)
+	c.JSON(code, map[string]interface{}{"error_message": message, "error_type": errorType})
 }
 
 func Init(service initializer.Service) {
@@ -25,8 +27,11 @@ func Init(service initializer.Service) {
 		UserService: service.UserService,
 	}
 	e := echo.New()
-	e.HTTPErrorHandler = customHTTPErrorHandler
+	e.HTTPErrorHandler = customErrorHandler
+	e.Use(middleware.Logger())
 	e.POST("/users", userHandler.Create)
 	e.GET("/activate_users", userHandler.Activate)
+	e.POST("/login", userHandler.Login)
+	e.POST("/logind", userHandler.Logind)
 	e.Logger.Fatal(e.Start(":8080"))
 }

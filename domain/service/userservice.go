@@ -57,8 +57,8 @@ func (service UserService) Activate(code model.UserActivationCode) error {
 	if err != nil {
 		return err
 	}
-	if model.IsActivationCodeExpired(auth) {
-		return fmt.Errorf("code expired")
+	if err := auth.ValidateActivationCodeExpired(); err != nil {
+		return err
 	}
 	user, err := service.userRepository.FindById(auth.UserID)
 	if err != nil {
@@ -71,6 +71,37 @@ func (service UserService) Activate(code model.UserActivationCode) error {
 	user.Activate()
 
 	return service.userRepository.Save(user)
+}
+
+func (service UserService) Login(email model.UserEmail, password model.UserRawPassword) (model.UserSessionId, error) {
+	user, err := service.userRepository.FindByEmail(email)
+	if err != nil {
+		return model.UserSessionId(""), err
+	}
+	auth, err := service.userAuthenticationRepository.FindByUserID(user.ID)
+	if err != nil {
+		return model.UserSessionId(""), err
+	}
+	if err := service.hasher.ValidatePassword(password, auth.PasswordDigest); err != nil {
+		return model.UserSessionId(""), err
+	}
+	id, expiresAt, err := model.NewUserSessionId()
+	if err != nil {
+		return model.UserSessionId(0), err
+	}
+	auth.UpdateSessionInfo(id, expiresAt)
+	return id, service.userAuthenticationRepository.Save(auth)
+}
+
+func (service UserService) Logind(sessionId model.UserSessionId) (model.UserID, error) {
+	auth, err := service.userAuthenticationRepository.FindBySessionId(sessionId)
+	if err != nil {
+		return 0, model.UserUnauthorized(err.Error())
+	}
+	if err := auth.ValidateSessionIdExpired(); err != nil {
+		return 0, err
+	}
+	return auth.UserID, nil
 }
 
 func (service UserService) ReSendActivateCodeEmail(userID model.UserID) error {

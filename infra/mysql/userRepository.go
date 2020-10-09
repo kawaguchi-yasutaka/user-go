@@ -1,10 +1,12 @@
 package mysql
 
 import (
+	"errors"
 	"gorm.io/gorm"
 	"time"
 	"user-go/domain/interfaces"
 	"user-go/domain/model"
+	"user-go/lib/myerror"
 )
 
 type userRepository struct {
@@ -21,9 +23,11 @@ type User struct {
 
 func FromUserModel(user model.User) User {
 	return User{
-		ID:     int64(user.ID),
-		Email:  string(user.Email),
-		Status: string(user.Status),
+		ID:        int64(user.ID),
+		Email:     string(user.Email),
+		Status:    string(user.Status),
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
 	}
 }
 func (user User) ToModel() (model.User, error) {
@@ -36,9 +40,11 @@ func (user User) ToModel() (model.User, error) {
 		return model.User{}, err
 	}
 	return model.User{
-		ID:     model.UserID(user.ID),
-		Email:  email,
-		Status: status,
+		ID:        model.UserID(user.ID),
+		Email:     email,
+		Status:    status,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
 	}, nil
 }
 
@@ -74,6 +80,18 @@ func (repo userRepository) FindById(ID model.UserID) (model.User, error) {
 	user := User{}
 	if err := repo.db.Where("id = ?", int64(ID)).First(&user).Error; err != nil {
 		return model.User{}, err
+	}
+	return user.ToModel()
+}
+
+func (repo userRepository) FindByEmail(email model.UserEmail) (model.User, error) {
+	user := User{}
+	result := repo.db.Where("email = ?", email).First(&user)
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return model.User{}, model.UserNotFound()
+	}
+	if result.Error != nil {
+		return model.User{}, myerror.DBError(result.Error)
 	}
 	return user.ToModel()
 }

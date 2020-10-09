@@ -19,6 +19,6 @@ func NewUserMailer(url string, mailer mailer.Mailer) UserMailer {
 }
 
 func (m UserMailer) SendAuthenticationCode(to model.UserEmail, code model.UserActivationCode) error {
-	body := fmt.Sprintf("認証コードです \n %v/activate?code=%v", m.url, code)
+	body := fmt.Sprintf("認証コードです \n %v/activate_users?code=%v", m.url, code)
 	return m.mailer.Send([]string{string(to)}, []byte(body))
 }

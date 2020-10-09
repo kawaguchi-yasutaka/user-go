@@ -1,6 +1,7 @@
 package hasher
 
 import (
+	"fmt"
 	"golang.org/x/crypto/bcrypt"
 	"user-go/domain/interfaces"
 	"user-go/domain/model"
@@ -19,4 +20,11 @@ func (hahser Hasher) GeneratePasswordDigest(password model.UserRawPassword) (mod
 		return "", err
 	}
 	return model.UserPasswordDigest(hashed), nil
+}
+
+func (hasher Hasher) ValidatePassword(password model.UserRawPassword, pDigest model.UserPasswordDigest) error {
+	if err := bcrypt.CompareHashAndPassword([]byte(pDigest), []byte(password)); err != nil {
+		return model.IncorrectUserPassword(fmt.Sprintf("%v is incorect ", password))
+	}
+	return nil
 }
