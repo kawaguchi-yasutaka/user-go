@@ -48,22 +48,23 @@ func (handler UserHandler) Login(c echo.Context) error {
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
+	c.Logger().Printf("これは：%v", req)
+
 	email, err := model.NewUserEmail(req.Email)
+	c.Logger().Printf("これは：%v", email)
 	if err != nil {
 		return err
 	}
 	password, err := model.NewUserRawPassword(req.Password)
+	c.Logger().Printf("これは：%v", password)
 	if err != nil {
 		return err
 	}
 
-	sessionId, err := handler.UserService.Login(email, password)
-	if err != nil {
+	if err := handler.UserService.Login(email, password); err != nil {
 		return err
 	}
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"sessionId": sessionId,
-	})
+	return c.NoContent(http.StatusOK)
 }
 
 func (handler UserHandler) Logind(c echo.Context) error {

@@ -49,7 +49,7 @@ func (service UserService) Create(email model.UserEmail, password model.UserRawP
 	if err := service.userAuthenticationRepository.Save(auth); err != nil {
 		return model.UserID(0), err
 	}
-	return userId, service.userMailer.SendAuthenticationCode(email, code)
+	return userId, service.userMailer.SendActivateCode(email, code)
 }
 
 func (service UserService) Activate(code model.UserActivationCode) error {
@@ -73,24 +73,29 @@ func (service UserService) Activate(code model.UserActivationCode) error {
 	return service.userRepository.Save(user)
 }
 
-func (service UserService) Login(email model.UserEmail, password model.UserRawPassword) (model.UserSessionId, error) {
+func (service UserService) Login(email model.UserEmail, password model.UserRawPassword) error {
 	user, err := service.userRepository.FindByEmail(email)
 	if err != nil {
-		return model.UserSessionId(""), err
+		return err
 	}
 	auth, err := service.userAuthenticationRepository.FindByUserID(user.ID)
 	if err != nil {
-		return model.UserSessionId(""), err
+		return err
 	}
 	if err := service.hasher.ValidatePassword(password, auth.PasswordDigest); err != nil {
-		return model.UserSessionId(""), err
+		return err
 	}
-	id, expiresAt, err := model.NewUserSessionId()
+	code, expiresAt, err := model.NewMultiAuthenticationCode()
 	if err != nil {
-		return model.UserSessionId(0), err
+		return err
 	}
-	auth.UpdateSessionInfo(id, expiresAt)
-	return id, service.userAuthenticationRepository.Save(auth)
+
+	auth.UpdateMultiAuthenticationInfo(code, expiresAt)
+
+	if err := service.userAuthenticationRepository.Save(auth); err != nil {
+		return err
+	}
+	return service.userMailer.SendMultiAuthenticationCode(email, code)
 }
 
 func (service UserService) Logind(sessionId model.UserSessionId) (model.UserID, error) {

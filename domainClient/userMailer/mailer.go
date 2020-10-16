@@ -18,7 +18,12 @@ func NewUserMailer(url string, mailer mailer.Mailer) UserMailer {
 	}
 }
 
-func (m UserMailer) SendAuthenticationCode(to model.UserEmail, code model.UserActivationCode) error {
-	body := fmt.Sprintf("認証コードです \n %v/activate_users?code=%v", m.url, code)
+func (m UserMailer) SendActivateCode(to model.UserEmail, code model.UserActivationCode) error {
+	body := fmt.Sprintf("認証コードです \n %v/users/activate?code=%v", m.url, code)
+	return m.mailer.Send([]string{string(to)}, []byte(body))
+}
+
+func (m UserMailer) SendMultiAuthenticationCode(to model.UserEmail, code model.UserMultiAuthenticationCode) error {
+	body := fmt.Sprintf("2段階認証コードです \n %v/users/multi-authenticate?code=%v", m.url, code)
 	return m.mailer.Send([]string{string(to)}, []byte(body))
 }

@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"github.com/go-playground/validator/v10"
+	mathRand "math/rand"
 	"net/http"
 	"time"
 	"user-go/lib/myerror"
@@ -74,7 +75,7 @@ func NewUserAuthentication(userId UserID, passwordDigest UserPasswordDigest) Use
 
 func NewAuthenticationCode() (UserActivationCode, UserActivationCodeExpiresAt, error) {
 	b := make([]byte, 64)
-	if _, err := rand.Read(b); err != nil {
+	if _, err := mathRand.Read(b); err != nil {
 		return UserActivationCode(""), UserActivationCodeExpiresAt(0), err
 	}
 	return UserActivationCode(
@@ -99,6 +100,17 @@ func NewUserRawPassword(password string) (UserRawPassword, error) {
 	return UserRawPassword(password), nil
 }
 
+func NewMultiAuthenticationCode() (UserMultiAuthenticationCode, UserMultiAuthenticationCodeExpiresAt, error) {
+	b := make([]byte, 64)
+	if _, err := mathRand.Read(b); err != nil {
+		return UserMultiAuthenticationCode(""), UserMultiAuthenticationCodeExpiresAt(0), err
+	}
+	return UserMultiAuthenticationCode(
+			base64.URLEncoding.EncodeToString(b)),
+		UserMultiAuthenticationCodeExpiresAt(unixtime.NewUnixTime(time.Now().Add(time.Duration(24) * time.Hour))),
+		nil
+}
+
 func NewUserSessionId() (UserSessionId, UserSessionIdExpiresAt, error) {
 	b := make([]byte, 64)
 	if _, err := rand.Read(b); err != nil {
@@ -120,15 +132,20 @@ func (authentication *UserAuthentication) UpdateSessionInfo(id UserSessionId, ex
 	authentication.SessionIdExpiresAt = expiresAt
 }
 
+func (authentication *UserAuthentication) UpdateMultiAuthenticationInfo(code UserMultiAuthenticationCode, expiresAt UserMultiAuthenticationCodeExpiresAt) {
+	authentication.MultiAuthenticationCode = code
+	authentication.MultiAuthenticationCodeExpiresAt = expiresAt
+}
+
 func (authentication UserAuthentication) ValidateActivationCodeExpired() error {
-	if unixtime.UnixTime(authentication.SessionIdExpiresAt) <= unixtime.Now() {
+	if unixtime.UnixTime(authentication.ActivationCodeExpiresAt) <= unixtime.Now() {
 		return ExpiredUserActivationCode()
 	}
 	return nil
 }
 
 func (authentication UserAuthentication) ValidateMultiAuthenticationCodeExpired() error {
-	if unixtime.UnixTime(authentication.SessionIdExpiresAt) <= unixtime.Now() {
+	if unixtime.UnixTime(authentication.MultiAuthenticationCodeExpiresAt) <= unixtime.Now() {
 		return ExpiredUserMultiAuthenticationCode()
 	}
 	return nil
