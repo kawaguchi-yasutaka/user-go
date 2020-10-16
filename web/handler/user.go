@@ -3,6 +3,7 @@ package handler
 import (
 	"github.com/labstack/echo/v4"
 	"net/http"
+	"strconv"
 	"user-go/domain/model"
 	"user-go/domain/service"
 	"user-go/web/request"
@@ -35,8 +36,13 @@ func (handler UserHandler) Create(c echo.Context) error {
 }
 
 func (handler UserHandler) Activate(c echo.Context) error {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		return err
+	}
 	if err := handler.UserService.Activate(
 		model.UserActivationCode(c.QueryParam("code")),
+		model.UserID(id),
 	); err != nil {
 		return err
 	}
@@ -77,8 +83,13 @@ func (handler UserHandler) Logind(c echo.Context) error {
 }
 
 func (handler UserHandler) MultiAuthenticate(c echo.Context) error {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		return err
+	}
 	sessionId, err := handler.UserService.MultiAuthenticate(
 		model.UserMultiAuthenticationCode(c.QueryParam("code")),
+		model.UserID(id),
 	)
 	if err != nil {
 		return err

@@ -32,10 +32,10 @@ func Init(service initializer.Service) {
 	users := e.Group("/users")
 
 	users.POST("", userHandler.Create)
-	users.GET("/activate", userHandler.Activate)
+	users.GET("/:id/activate", userHandler.Activate)
 	users.POST("/login", userHandler.Login)
 	users.POST("/logind", userHandler.Logind)
-	users.GET("/multi-authenticate", userHandler.MultiAuthenticate)
+	users.GET("/:id/multi-authenticate", userHandler.MultiAuthenticate)
 
 	e.Logger.Fatal(e.Start(":8080"))
 }

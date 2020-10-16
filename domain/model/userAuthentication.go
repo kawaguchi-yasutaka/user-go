@@ -51,7 +51,7 @@ func UserUnauthorized(msg string) myerror.CustomError {
 }
 
 func UserAuthenticationNotFound() myerror.CustomError {
-	return myerror.NewCustomError("not found", ErrorUserAuthenticationNotFound, http.StatusNotFound)
+	return myerror.NewCustomError("authentication not found", ErrorUserAuthenticationNotFound, http.StatusNotFound)
 }
 
 func RequiredUserPassword(msg string) myerror.CustomError {

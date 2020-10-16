@@ -89,10 +89,17 @@ func (repo UserAuthenticationRepository) FindByUserID(
 
 func (repo UserAuthenticationRepository) FindByActivateCode(
 	code model.UserActivationCode,
+	id model.UserID,
 ) (model.UserAuthentication, error) {
 	auth := UserAuthentication{}
-	if result := repo.db.Where("activation_code = ?", string(code)).First(&auth); result.Error != nil {
-		return model.UserAuthentication{}, result.Error
+	result := repo.db.
+		Where("activation_code = ? AND user_id = ?", string(code), int64(id)).
+		First(&auth)
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return model.UserAuthentication{}, model.UserAuthenticationNotFound()
+	}
+	if result.Error != nil {
+		return model.UserAuthentication{}, myerror.DBError(result.Error)
 	}
 	return auth.ToModel(), nil
 }
@@ -113,9 +120,10 @@ func (repo UserAuthenticationRepository) FindBySessionId(
 
 func (repo UserAuthenticationRepository) FindByMultiAuthenticateCode(
 	code model.UserMultiAuthenticationCode,
+	id model.UserID,
 ) (model.UserAuthentication, error) {
 	auth := UserAuthentication{}
-	result := repo.db.Where("multi_authentication_code = ?", string(code)).First(&auth)
+	result := repo.db.Where("multi_authentication_code = ? AND user_id = ?", string(code), int64(id)).First(&auth)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return model.UserAuthentication{}, model.UserAuthenticationNotFound()
 	}

@@ -49,18 +49,18 @@ func (service UserService) Create(email model.UserEmail, password model.UserRawP
 	if err := service.userAuthenticationRepository.Save(auth); err != nil {
 		return model.UserID(0), err
 	}
-	return userId, service.userMailer.SendActivateCode(email, code)
+	return userId, service.userMailer.SendActivateCode(email, code, userId)
 }
 
-func (service UserService) Activate(code model.UserActivationCode) error {
-	auth, err := service.userAuthenticationRepository.FindByActivateCode(code)
+func (service UserService) Activate(code model.UserActivationCode, id model.UserID) error {
+	auth, err := service.userAuthenticationRepository.FindByActivateCode(code, id)
 	if err != nil {
 		return err
 	}
 	if err := auth.ValidateActivationCodeExpired(); err != nil {
 		return err
 	}
-	user, err := service.userRepository.FindById(auth.UserID)
+	user, err := service.userRepository.FindById(id)
 	if err != nil {
 		return err
 	}
@@ -95,7 +95,7 @@ func (service UserService) Login(email model.UserEmail, password model.UserRawPa
 	if err := service.userAuthenticationRepository.Save(auth); err != nil {
 		return err
 	}
-	return service.userMailer.SendMultiAuthenticationCode(email, code)
+	return service.userMailer.SendMultiAuthenticationCode(email, code, user.ID)
 }
 
 func (service UserService) Logind(sessionId model.UserSessionId) (model.UserID, error) {
@@ -109,20 +109,23 @@ func (service UserService) Logind(sessionId model.UserSessionId) (model.UserID, 
 	return auth.UserID, nil
 }
 
-func (service UserService) MultiAuthenticate(code model.UserMultiAuthenticationCode) (model.UserSessionId, error) {
-	auth, err := service.userAuthenticationRepository.FindByMultiAuthenticateCode(code)
+func (service UserService) MultiAuthenticate(
+	code model.UserMultiAuthenticationCode,
+	id model.UserID,
+) (model.UserSessionId, error) {
+	auth, err := service.userAuthenticationRepository.FindByMultiAuthenticateCode(code, id)
 	if err != nil {
 		return model.UserSessionId(""), err
 	}
 	if err := auth.ValidateMultiAuthenticationCodeExpired(); err != nil {
 		return model.UserSessionId(""), err
 	}
-	id, expiresAt, err := model.NewUserSessionId()
+	sessionId, expiresAt, err := model.NewUserSessionId()
 	if err != nil {
 		return model.UserSessionId(0), err
 	}
-	auth.UpdateSessionInfo(id, expiresAt)
-	return id, service.userAuthenticationRepository.Save(auth)
+	auth.UpdateSessionInfo(sessionId, expiresAt)
+	return sessionId, service.userAuthenticationRepository.Save(auth)
 }
 
 func (service UserService) ReSendActivateCodeEmail(userID model.UserID) error {
