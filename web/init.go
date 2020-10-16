@@ -7,6 +7,7 @@ import (
 	"user-go/initializer"
 	"user-go/lib/myerror"
 	"user-go/web/handler"
+	"user-go/web/middlewares"
 )
 
 func customErrorHandler(err error, c echo.Context) {
@@ -29,12 +30,13 @@ func Init(service initializer.Service) {
 	e := echo.New()
 	e.HTTPErrorHandler = customErrorHandler
 	e.Use(middleware.Logger())
+	e.Use(middlewares.AuthorizationMiddleware)
 	users := e.Group("/users")
 
 	users.POST("", userHandler.Create)
 	users.GET("/:id/activate", userHandler.Activate)
 	users.POST("/login", userHandler.Login)
-	users.POST("/logind", userHandler.Logind)
+	users.GET("/logind", userHandler.Logind)
 	users.GET("/:id/multi-authenticate", userHandler.MultiAuthenticate)
 
 	e.Logger.Fatal(e.Start(":8080"))

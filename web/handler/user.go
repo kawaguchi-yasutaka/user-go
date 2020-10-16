@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"user-go/domain/model"
 	"user-go/domain/service"
+	"user-go/web/middlewares"
 	"user-go/web/request"
 )
 
@@ -54,15 +55,12 @@ func (handler UserHandler) Login(c echo.Context) error {
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
-	c.Logger().Printf("これは：%v", req)
 
 	email, err := model.NewUserEmail(req.Email)
-	c.Logger().Printf("これは：%v", email)
 	if err != nil {
 		return err
 	}
 	password, err := model.NewUserRawPassword(req.Password)
-	c.Logger().Printf("これは：%v", password)
 	if err != nil {
 		return err
 	}
@@ -74,8 +72,8 @@ func (handler UserHandler) Login(c echo.Context) error {
 }
 
 func (handler UserHandler) Logind(c echo.Context) error {
-	seesionId := c.Request().Header.Get("Authorization")
-	_, err := handler.UserService.Logind(model.UserSessionId(seesionId))
+	sessionId := middlewares.GetAuth(c)
+	_, err := handler.UserService.Logind(model.UserSessionId(sessionId))
 	if err != nil {
 		return err
 	}
