@@ -29,9 +29,13 @@ func Init(service initializer.Service) {
 	e := echo.New()
 	e.HTTPErrorHandler = customErrorHandler
 	e.Use(middleware.Logger())
-	e.POST("/users", userHandler.Create)
-	e.GET("/activate_users", userHandler.Activate)
-	e.POST("/login", userHandler.Login)
-	e.POST("/logind", userHandler.Logind)
+	users := e.Group("/users")
+
+	users.POST("", userHandler.Create)
+	users.GET("/activate", userHandler.Activate)
+	users.POST("/login", userHandler.Login)
+	users.POST("/logind", userHandler.Logind)
+	users.GET("/multi-authenticate", userHandler.MultiAuthenticate)
+
 	e.Logger.Fatal(e.Start(":8080"))
 }

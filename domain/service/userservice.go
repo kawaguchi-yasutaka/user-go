@@ -104,6 +104,22 @@ func (service UserService) Logind(sessionId model.UserSessionId) (model.UserID, 
 	return auth.UserID, nil
 }
 
+func (service UserService) MultiAuthenticate(code model.UserMultiAuthenticationCode) (model.UserSessionId, error) {
+	auth, err := service.userAuthenticationRepository.FindByMultiAuthenticateCode(code)
+	if err != nil {
+		return model.UserSessionId(""), err
+	}
+	if err := auth.ValidateMultiAuthenticationCodeExpired(); err != nil {
+		return model.UserSessionId(""), err
+	}
+	id, expiresAt, err := model.NewUserSessionId()
+	if err != nil {
+		return model.UserSessionId(0), err
+	}
+	auth.UpdateSessionInfo(id, expiresAt)
+	return id, service.userAuthenticationRepository.Save(auth)
+}
+
 func (service UserService) ReSendActivateCodeEmail(userID model.UserID) error {
 	return nil
 }

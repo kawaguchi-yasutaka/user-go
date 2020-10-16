@@ -74,3 +74,15 @@ func (handler UserHandler) Logind(c echo.Context) error {
 	}
 	return c.NoContent(http.StatusNoContent)
 }
+
+func (handler UserHandler) MultiAuthenticate(c echo.Context) error {
+	sessionId, err := handler.UserService.MultiAuthenticate(
+		model.UserMultiAuthenticationCode(c.QueryParam("code")),
+	)
+	if err != nil {
+		return err
+	}
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"sessionId": sessionId,
+	})
+}

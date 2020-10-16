@@ -11,33 +11,38 @@ import (
 )
 
 type UserAuthentication struct {
-	UserID                  UserID
-	PasswordDigest          UserPasswordDigest
-	ActivationCode          UserActivationCode
-	ActivationCodeExpiresAt UserActivationCodeExpiresAt
-	SessionId               *UserSessionId
-	SessionIdExpiresAt      UserSessionIdExpiresAt
+	UserID                           UserID
+	PasswordDigest                   UserPasswordDigest
+	ActivationCode                   UserActivationCode
+	ActivationCodeExpiresAt          UserActivationCodeExpiresAt
+	MultiAuthenticationCode          UserMultiAuthenticationCode
+	MultiAuthenticationCodeExpiresAt UserMultiAuthenticationCodeExpiresAt
+	SessionId                        *UserSessionId
+	SessionIdExpiresAt               UserSessionIdExpiresAt
 }
 
 type (
-	UserRawPassword             string
-	UserPasswordDigest          string
-	UserActivationCode          string
-	UserActivationCodeExpiresAt unixtime.UnixTime
-	UserSessionId               string
-	UserSessionIdExpiresAt      unixtime.UnixTime
+	UserRawPassword                      string
+	UserPasswordDigest                   string
+	UserActivationCode                   string
+	UserActivationCodeExpiresAt          unixtime.UnixTime
+	UserMultiAuthenticationCode          string
+	UserMultiAuthenticationCodeExpiresAt unixtime.UnixTime
+	UserSessionId                        string
+	UserSessionIdExpiresAt               unixtime.UnixTime
 )
 
 const (
-	ErrorUserUnauthorized           myerror.ErrorType = "user_unauthorized"
-	ErrorUserAuthenticationNotFound myerror.ErrorType = "User_authentication_not_found"
-	ErrorRequiredUserPassword       myerror.ErrorType = "required_user_password"
-	ErrorTooShortUserPassword       myerror.ErrorType = "too_short_user_password"
-	ErrorExpiredUserActivationCode  myerror.ErrorType = "expired_user_activation_code"
+	ErrorUserUnauthorized                   myerror.ErrorType = "user_unauthorized"
+	ErrorUserAuthenticationNotFound         myerror.ErrorType = "User_authentication_not_found"
+	ErrorRequiredUserPassword               myerror.ErrorType = "required_user_password"
+	ErrorTooShortUserPassword               myerror.ErrorType = "too_short_user_password"
+	ErrorExpiredUserActivationCode          myerror.ErrorType = "expired_user_activation_code"
+	ErrorExpiredUserMultiAuthenticationCode myerror.ErrorType = "expired_user_multi_authentication_code"
 )
 
 func ExpiredUserActivationCode() myerror.CustomError {
-	return myerror.NewCustomError("expired acitavation code", ErrorExpiredUserActivationCode, http.StatusBadRequest)
+	return myerror.NewCustomError("expired activation code", ErrorExpiredUserActivationCode, http.StatusBadRequest)
 }
 
 func UserUnauthorized(msg string) myerror.CustomError {
@@ -54,6 +59,10 @@ func RequiredUserPassword(msg string) myerror.CustomError {
 
 func TooShortUserPassword(msg string) myerror.CustomError {
 	return myerror.NewCustomError(msg, ErrorTooShortUserPassword, http.StatusBadRequest)
+}
+
+func ExpiredUserMultiAuthenticationCode() myerror.CustomError {
+	return myerror.NewCustomError("expired multi authentication code", ErrorExpiredUserMultiAuthenticationCode, http.StatusBadRequest)
 }
 
 func NewUserAuthentication(userId UserID, passwordDigest UserPasswordDigest) UserAuthentication {
@@ -114,6 +123,13 @@ func (authentication *UserAuthentication) UpdateSessionInfo(id UserSessionId, ex
 func (authentication UserAuthentication) ValidateActivationCodeExpired() error {
 	if unixtime.UnixTime(authentication.SessionIdExpiresAt) <= unixtime.Now() {
 		return ExpiredUserActivationCode()
+	}
+	return nil
+}
+
+func (authentication UserAuthentication) ValidateMultiAuthenticationCodeExpired() error {
+	if unixtime.UnixTime(authentication.SessionIdExpiresAt) <= unixtime.Now() {
+		return ExpiredUserMultiAuthenticationCode()
 	}
 	return nil
 }

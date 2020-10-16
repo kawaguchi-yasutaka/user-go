@@ -9,12 +9,14 @@ import (
 )
 
 type UserAuthentication struct {
-	UserID                 int64   `gorm:"primaryKey"`
-	PasswordDigest         string  `gorm:"not null;default:''"`
-	ActivationCode         string  `gorm:"not null;default:''"`
-	ActivationCodeExpireAt int64   `gorm:"not null;default:0"`
-	SessionId              *string `gorm:"unique"`
-	SessionIdExpiresAt     int64   `gorm:"not null;default:0"`
+	UserID                           int64   `gorm:"primaryKey"`
+	PasswordDigest                   string  `gorm:"not null;default:''"`
+	ActivationCode                   string  `gorm:"not null;default:''"`
+	ActivationCodeExpireAt           int64   `gorm:"not null;default:0"`
+	MultiAuthenticationCode          string  `gorm:"not null;default:''"`
+	MultiAuthenticationCodeExpiresAt int64   `gorm:"not null;default:0"`
+	SessionId                        *string `gorm:"unique"`
+	SessionIdExpiresAt               int64   `gorm:"not null;default:0"`
 }
 
 type UserAuthenticationRepository struct {
@@ -34,12 +36,14 @@ func FromUserAuthenticationModel(auth model.UserAuthentication) UserAuthenticati
 		sessionId = &val
 	}
 	return UserAuthentication{
-		UserID:                 int64(auth.UserID),
-		PasswordDigest:         string(auth.PasswordDigest),
-		ActivationCode:         string(auth.ActivationCode),
-		ActivationCodeExpireAt: int64(auth.ActivationCodeExpiresAt),
-		SessionId:              sessionId,
-		SessionIdExpiresAt:     int64(auth.SessionIdExpiresAt),
+		UserID:                           int64(auth.UserID),
+		PasswordDigest:                   string(auth.PasswordDigest),
+		ActivationCode:                   string(auth.ActivationCode),
+		ActivationCodeExpireAt:           int64(auth.ActivationCodeExpiresAt),
+		MultiAuthenticationCode:          string(auth.MultiAuthenticationCode),
+		MultiAuthenticationCodeExpiresAt: int64(auth.MultiAuthenticationCodeExpiresAt),
+		SessionId:                        sessionId,
+		SessionIdExpiresAt:               int64(auth.SessionIdExpiresAt),
 	}
 }
 
@@ -50,12 +54,14 @@ func (authentication UserAuthentication) ToModel() model.UserAuthentication {
 		sessionId = &val
 	}
 	return model.UserAuthentication{
-		UserID:                  model.UserID(authentication.UserID),
-		PasswordDigest:          model.UserPasswordDigest(authentication.PasswordDigest),
-		ActivationCode:          model.UserActivationCode(authentication.ActivationCode),
-		ActivationCodeExpiresAt: model.UserActivationCodeExpiresAt(authentication.ActivationCodeExpireAt),
-		SessionId:               sessionId,
-		SessionIdExpiresAt:      model.UserSessionIdExpiresAt(authentication.SessionIdExpiresAt),
+		UserID:                           model.UserID(authentication.UserID),
+		PasswordDigest:                   model.UserPasswordDigest(authentication.PasswordDigest),
+		ActivationCode:                   model.UserActivationCode(authentication.ActivationCode),
+		ActivationCodeExpiresAt:          model.UserActivationCodeExpiresAt(authentication.ActivationCodeExpireAt),
+		MultiAuthenticationCode:          model.UserMultiAuthenticationCode(authentication.MultiAuthenticationCode),
+		MultiAuthenticationCodeExpiresAt: model.UserMultiAuthenticationCodeExpiresAt(authentication.MultiAuthenticationCodeExpiresAt),
+		SessionId:                        sessionId,
+		SessionIdExpiresAt:               model.UserSessionIdExpiresAt(authentication.SessionIdExpiresAt),
 	}
 }
 
@@ -96,6 +102,20 @@ func (repo UserAuthenticationRepository) FindBySessionId(
 ) (model.UserAuthentication, error) {
 	auth := UserAuthentication{}
 	result := repo.db.Where("session_id = ?", string(sessionId)).First(&auth)
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return model.UserAuthentication{}, model.UserAuthenticationNotFound()
+	}
+	if result.Error != nil {
+		return model.UserAuthentication{}, myerror.DBError(result.Error)
+	}
+	return auth.ToModel(), nil
+}
+
+func (repo UserAuthenticationRepository) FindByMultiAuthenticateCode(
+	code model.UserMultiAuthenticationCode,
+) (model.UserAuthentication, error) {
+	auth := UserAuthentication{}
+	result := repo.db.Where("multi_authentication_code = ?", string(code)).First(&auth)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return model.UserAuthentication{}, model.UserAuthenticationNotFound()
 	}
