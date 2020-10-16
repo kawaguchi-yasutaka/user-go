@@ -1,9 +1,9 @@
 package model
 
 import (
+	"crypto/rand"
 	"encoding/base64"
 	"github.com/go-playground/validator/v10"
-	"math/rand"
 	"net/http"
 	"time"
 	"user-go/lib/myerror"
