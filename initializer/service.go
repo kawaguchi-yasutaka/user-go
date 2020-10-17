@@ -13,6 +13,7 @@ func NewService(infra Infra, repository Repository) Service {
 		UserService: service.NewUserService(
 			repository.userRepository,
 			repository.userAuthenticationRepository,
+			repository.userRememberRepository,
 			infra.hasher,
 			infra.userMailer,
 		),

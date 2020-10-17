@@ -30,8 +30,7 @@ func (m UserMailer) SendActivateCode(
 func (m UserMailer) SendMultiAuthenticationCode(
 	to model.UserEmail,
 	code model.UserMultiAuthenticationCode,
-	id model.UserID,
 ) error {
-	body := fmt.Sprintf("2段階認証コードです \n %v/users/%v/multi-authenticate?code=%v", m.url, id, code)
+	body := fmt.Sprintf("2段階認証コードです \n %v/users/multi-authenticate?code=%v", m.url, code)
 	return m.mailer.Send([]string{string(to)}, []byte(body))
 }

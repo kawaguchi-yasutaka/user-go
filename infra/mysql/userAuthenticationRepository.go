@@ -9,14 +9,10 @@ import (
 )
 
 type UserAuthentication struct {
-	UserID                           int64   `gorm:"primaryKey"`
-	PasswordDigest                   string  `gorm:"not null;default:''"`
-	ActivationCode                   string  `gorm:"not null;default:''"`
-	ActivationCodeExpireAt           int64   `gorm:"not null;default:0"`
-	MultiAuthenticationCode          string  `gorm:"not null;default:''"`
-	MultiAuthenticationCodeExpiresAt int64   `gorm:"not null;default:0"`
-	SessionId                        *string `gorm:"unique"`
-	SessionIdExpiresAt               int64   `gorm:"not null;default:0"`
+	UserID                 int64  `gorm:"primaryKey"`
+	PasswordDigest         string `gorm:"not null;default:''"`
+	ActivationCode         string `gorm:"not null;default:''"`
+	ActivationCodeExpireAt int64  `gorm:"not null;default:0"`
 }
 
 type UserAuthenticationRepository struct {
@@ -30,38 +26,20 @@ func NewUserAuthenticationRepository(db *gorm.DB) interfaces.IUserAuthentication
 }
 
 func FromUserAuthenticationModel(auth model.UserAuthentication) UserAuthentication {
-	var sessionId *string
-	if auth.SessionId != nil {
-		val := string(*auth.SessionId)
-		sessionId = &val
-	}
 	return UserAuthentication{
-		UserID:                           int64(auth.UserID),
-		PasswordDigest:                   string(auth.PasswordDigest),
-		ActivationCode:                   string(auth.ActivationCode),
-		ActivationCodeExpireAt:           int64(auth.ActivationCodeExpiresAt),
-		MultiAuthenticationCode:          string(auth.MultiAuthenticationCode),
-		MultiAuthenticationCodeExpiresAt: int64(auth.MultiAuthenticationCodeExpiresAt),
-		SessionId:                        sessionId,
-		SessionIdExpiresAt:               int64(auth.SessionIdExpiresAt),
+		UserID:                 int64(auth.UserID),
+		PasswordDigest:         string(auth.PasswordDigest),
+		ActivationCode:         string(auth.ActivationCode),
+		ActivationCodeExpireAt: int64(auth.ActivationCodeExpiresAt),
 	}
 }
 
 func (authentication UserAuthentication) ToModel() model.UserAuthentication {
-	var sessionId *model.UserSessionId
-	if authentication.SessionId != nil {
-		val := model.UserSessionId(*authentication.SessionId)
-		sessionId = &val
-	}
 	return model.UserAuthentication{
-		UserID:                           model.UserID(authentication.UserID),
-		PasswordDigest:                   model.UserPasswordDigest(authentication.PasswordDigest),
-		ActivationCode:                   model.UserActivationCode(authentication.ActivationCode),
-		ActivationCodeExpiresAt:          model.UserActivationCodeExpiresAt(authentication.ActivationCodeExpireAt),
-		MultiAuthenticationCode:          model.UserMultiAuthenticationCode(authentication.MultiAuthenticationCode),
-		MultiAuthenticationCodeExpiresAt: model.UserMultiAuthenticationCodeExpiresAt(authentication.MultiAuthenticationCodeExpiresAt),
-		SessionId:                        sessionId,
-		SessionIdExpiresAt:               model.UserSessionIdExpiresAt(authentication.SessionIdExpiresAt),
+		UserID:                  model.UserID(authentication.UserID),
+		PasswordDigest:          model.UserPasswordDigest(authentication.PasswordDigest),
+		ActivationCode:          model.UserActivationCode(authentication.ActivationCode),
+		ActivationCodeExpiresAt: model.UserActivationCodeExpiresAt(authentication.ActivationCodeExpireAt),
 	}
 }
 

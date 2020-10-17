@@ -65,10 +65,14 @@ func (handler UserHandler) Login(c echo.Context) error {
 		return err
 	}
 
-	if err := handler.UserService.Login(email, password); err != nil {
+	sessionId, err := handler.UserService.Login(email, password)
+	if err != nil {
 		return err
 	}
-	return c.NoContent(http.StatusOK)
+
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"sessionId": sessionId,
+	})
 }
 
 func (handler UserHandler) Logind(c echo.Context) error {
@@ -81,18 +85,12 @@ func (handler UserHandler) Logind(c echo.Context) error {
 }
 
 func (handler UserHandler) MultiAuthenticate(c echo.Context) error {
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
-	if err != nil {
-		return err
-	}
-	sessionId, err := handler.UserService.MultiAuthenticate(
+	sessionId := middlewares.GetAuth(c)
+	if err := handler.UserService.MultiAuthenticate(
 		model.UserMultiAuthenticationCode(c.QueryParam("code")),
-		model.UserID(id),
-	)
-	if err != nil {
+		model.UserSessionId(sessionId),
+	); err != nil {
 		return err
 	}
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"sessionId": sessionId,
-	})
+	return c.NoContent(http.StatusOK)
 }

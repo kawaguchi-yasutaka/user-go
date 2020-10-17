@@ -9,6 +9,7 @@ import (
 type UserService struct {
 	userRepository               interfaces.IUserRepository
 	userAuthenticationRepository interfaces.IUserAuthenticationRepository
+	userRememberRepository       interfaces.IUserRemenberRepository
 	hasher                       interfaces.IHasher
 	userMailer                   interfaces.IUserMailer
 }
@@ -16,12 +17,14 @@ type UserService struct {
 func NewUserService(
 	userRepository interfaces.IUserRepository,
 	userAuthenticationRepository interfaces.IUserAuthenticationRepository,
+	userRememberRepository interfaces.IUserRemenberRepository,
 	hasher interfaces.IHasher,
 	userMailer interfaces.IUserMailer,
 ) UserService {
 	return UserService{
 		userRepository:               userRepository,
 		userAuthenticationRepository: userAuthenticationRepository,
+		userRememberRepository:       userRememberRepository,
 		hasher:                       hasher,
 		userMailer:                   userMailer,
 	}
@@ -73,59 +76,68 @@ func (service UserService) Activate(code model.UserActivationCode, id model.User
 	return service.userRepository.Save(user)
 }
 
-func (service UserService) Login(email model.UserEmail, password model.UserRawPassword) error {
+func (service UserService) Login(email model.UserEmail, password model.UserRawPassword) (model.UserSessionId, error) {
 	user, err := service.userRepository.FindByEmail(email)
 	if err != nil {
-		return err
+		return model.UserSessionId(""), err
 	}
 	auth, err := service.userAuthenticationRepository.FindByUserID(user.ID)
 	if err != nil {
-		return err
+		return model.UserSessionId(""), err
 	}
 	if err := service.hasher.ValidatePassword(password, auth.PasswordDigest); err != nil {
-		return err
+		return model.UserSessionId(""), err
 	}
-	code, expiresAt, err := model.NewMultiAuthenticationCode()
+	code, codeExpiresAt, err := model.NewMultiAuthenticationCode()
 	if err != nil {
-		return err
+		return model.UserSessionId(""), err
+	}
+	sessionId, sessionIdExpiresAt, err := model.NewUserSessionId()
+	if err != nil {
+		return model.UserSessionId(""), err
 	}
 
-	auth.UpdateMultiAuthenticationInfo(code, expiresAt)
-
-	if err := service.userAuthenticationRepository.Save(auth); err != nil {
-		return err
+	userRemember := model.NewUserRememberBySingleFactorAuthentication(
+		user.ID,
+		sessionId,
+		sessionIdExpiresAt,
+		code,
+		codeExpiresAt,
+	)
+	if err := service.userRememberRepository.Save(userRemember); err != nil {
+		return model.UserSessionId(""), err
 	}
-	return service.userMailer.SendMultiAuthenticationCode(email, code, user.ID)
+	if err := service.userMailer.SendMultiAuthenticationCode(email, code); err != nil {
+		return model.UserSessionId(""), err
+	}
+	return sessionId, nil
 }
 
 func (service UserService) Logind(sessionId model.UserSessionId) (model.UserID, error) {
-	auth, err := service.userAuthenticationRepository.FindBySessionId(sessionId)
+	userRemember, err := service.userRememberRepository.FindBySessionId(sessionId)
 	if err != nil {
 		return 0, model.UserUnauthorized(err.Error())
 	}
-	if err := auth.ValidateSessionIdExpired(); err != nil {
+	if err := userRemember.ValidateSession(); err != nil {
 		return 0, err
 	}
-	return auth.UserID, nil
+	return userRemember.UserID, nil
 }
 
 func (service UserService) MultiAuthenticate(
 	code model.UserMultiAuthenticationCode,
-	id model.UserID,
-) (model.UserSessionId, error) {
-	auth, err := service.userAuthenticationRepository.FindByMultiAuthenticateCode(code, id)
+	sessionId model.UserSessionId,
+) error {
+	userRemember, err := service.userRememberRepository.FindBySessionId(sessionId)
 	if err != nil {
-		return model.UserSessionId(""), err
+		return err
 	}
-	if err := auth.ValidateMultiAuthenticationCodeExpired(); err != nil {
-		return model.UserSessionId(""), err
+	if err := userRemember.ValidateMultiAuthenticationCode(code); err != nil {
+		return err
 	}
-	sessionId, expiresAt, err := model.NewUserSessionId()
-	if err != nil {
-		return model.UserSessionId(0), err
-	}
-	auth.UpdateSessionInfo(sessionId, expiresAt)
-	return sessionId, service.userAuthenticationRepository.Save(auth)
+	userRemember.Completed()
+
+	return service.userRememberRepository.Save(userRemember)
 }
 
 func (service UserService) ReSendActivateCodeEmail(userID model.UserID) error {
