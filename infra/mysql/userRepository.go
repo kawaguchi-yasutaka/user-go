@@ -58,11 +58,11 @@ func (repo userRepository) Create(user model.User, password model.UserPasswordDi
 	u := FromUserModel(user)
 	return model.UserID(u.ID), repo.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(&u).Error; err != nil {
-			return err
+			return myerror.DBError(err)
 		}
 		uPassword := FromUserAuthenticationModel(model.NewUserAuthentication(model.UserID(u.ID), password))
-		if err := tx.Create(&uPassword).Debug().Error; err != nil {
-			return err
+		if err := tx.Create(&uPassword).Error; err != nil {
+			return myerror.DBError(err)
 		}
 		return nil
 	})
@@ -76,9 +76,9 @@ func (repo userRepository) Save(user model.User) error {
 	return nil
 }
 
-func (repo userRepository) FindById(ID model.UserID) (model.User, error) {
+func (repo userRepository) FindById(id model.UserID) (model.User, error) {
 	user := User{}
-	if err := repo.db.Where("id = ?", int64(ID)).First(&user).Error; err != nil {
+	if err := repo.db.Where("id = ?", int64(id)).First(&user).Error; err != nil {
 		return model.User{}, err
 	}
 	return user.ToModel()
