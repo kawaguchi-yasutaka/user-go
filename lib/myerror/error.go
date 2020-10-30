@@ -3,6 +3,7 @@ package myerror
 import (
 	"fmt"
 	"net/http"
+	"reflect"
 	"regexp"
 )
 
@@ -40,4 +41,22 @@ func DBError(err error) CustomError {
 	default:
 		return NewCustomError(err.Error(), ErrorDBError, http.StatusInternalServerError)
 	}
+}
+
+func EqualErrorType(x error, y error) bool {
+	if reflect.DeepEqual(x, y) {
+		return true
+	}
+	xCErr, ok := x.(CustomError)
+	if !ok {
+		return false
+	}
+	yCErr, ok := y.(CustomError)
+	if !ok {
+		return false
+	}
+	if xCErr.ErrorType == yCErr.ErrorType {
+		return true
+	}
+	return false
 }

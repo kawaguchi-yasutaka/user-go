@@ -5,15 +5,15 @@ import (
 	"user-go/domain/model"
 )
 
-type mailerMock struct {
+type MailerMock struct {
 }
 
-var _ interfaces.IUserMailer = mailerMock{}
+var _ interfaces.IUserMailer = MailerMock{}
 
-func (m mailerMock) SendActivateCode(to model.UserEmail, code model.UserActivationCode, id model.UserID) error {
+func (m MailerMock) SendActivateCode(to model.UserEmail, code model.UserActivationCode, id model.UserID) error {
 	return nil
 }
 
-func (m mailerMock) SendMultiAuthenticationCode(to model.UserEmail, code model.UserMultiAuthenticationCode) error {
+func (m MailerMock) SendMultiAuthenticationCode(to model.UserEmail, code model.UserMultiAuthenticationCode) error {
 	panic("not implement")
 }

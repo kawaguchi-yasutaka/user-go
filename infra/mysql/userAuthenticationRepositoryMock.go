@@ -5,21 +5,29 @@ import (
 	"user-go/domain/model"
 )
 
-type userAuthenticationRepositoryMock struct {
-	userAuthentications map[model.UserID]model.UserAuthentication
+type UserAuthenticationRepositoryMock struct {
+	UserAuthentications map[model.UserID]model.UserAuthentication
 }
 
-var _ interfaces.IUserAuthenticationRepository = userAuthenticationRepositoryMock{}
+var _ interfaces.IUserAuthenticationRepository = UserAuthenticationRepositoryMock{}
 
-func (r userAuthenticationRepositoryMock) Save(authentication model.UserAuthentication) error {
-	r.userAuthentications[authentication.UserID] = authentication
+func (r UserAuthenticationRepositoryMock) Save(authentication model.UserAuthentication) error {
+	r.UserAuthentications[authentication.UserID] = authentication
 	return nil
 }
 
-func (r userAuthenticationRepositoryMock) FindByUserID(UserID model.UserID) (model.UserAuthentication, error) {
-	panic("not implement")
+func (r UserAuthenticationRepositoryMock) FindByUserID(UserID model.UserID) (model.UserAuthentication, error) {
+	if a, ok := r.UserAuthentications[UserID]; ok {
+		return a, nil
+	}
+	return model.UserAuthentication{}, model.UserAuthenticationNotFound()
 }
 
-func (r userAuthenticationRepositoryMock) FindByActivateCode(code model.UserActivationCode, id model.UserID) (model.UserAuthentication, error) {
-	panic("not implement")
+func (r UserAuthenticationRepositoryMock) FindByActivateCode(code model.UserActivationCode, id model.UserID) (model.UserAuthentication, error) {
+	for _, v := range r.UserAuthentications {
+		if v.UserID == id && v.ActivationCode == code {
+			return v, nil
+		}
+	}
+	return model.UserAuthentication{}, model.UserAuthenticationNotFound()
 }

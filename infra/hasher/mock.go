@@ -6,16 +6,16 @@ import (
 	"user-go/domain/model"
 )
 
-type hasherMock struct {
+type HasherMock struct {
 }
 
-var _ interfaces.IHasher = hasherMock{}
+var _ interfaces.IHasher = HasherMock{}
 
-func (h hasherMock) GeneratePasswordDigest(password model.UserRawPassword) (model.UserPasswordDigest, error) {
+func (h HasherMock) GeneratePasswordDigest(password model.UserRawPassword) (model.UserPasswordDigest, error) {
 	return model.UserPasswordDigest(password), nil
 }
 
-func (h hasherMock) ValidatePassword(password model.UserRawPassword, pDigest model.UserPasswordDigest) error {
+func (h HasherMock) ValidatePassword(password model.UserRawPassword, pDigest model.UserPasswordDigest) error {
 	if string(password) != string(pDigest) {
 		return model.IncorrectUserPassword(fmt.Sprintf("%v is incorect ", password))
 	}

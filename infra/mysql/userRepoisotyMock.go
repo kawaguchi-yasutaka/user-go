@@ -7,36 +7,46 @@ import (
 	"user-go/lib/myerror"
 )
 
-type userRepositoryMock struct {
-	users               map[model.UserID]model.User
-	userAuthentications map[model.UserID]model.UserAuthentication
+type UserRepositoryMock struct {
+	Users               map[model.UserID]model.User
+	UserAuthentications map[model.UserID]model.UserAuthentication
 }
 
-var _ interfaces.IUserRepository = userRepositoryMock{}
+var _ interfaces.IUserRepository = UserRepositoryMock{}
 
-func (r userRepositoryMock) Create(
+func (r UserRepositoryMock) Create(
 	user model.User,
 	userPassword model.UserPasswordDigest,
 ) (model.UserID, error) {
-	if _, ok := r.users[user.ID]; ok {
+	uNextId := model.UserID(1)
+	for k, _ := range r.Users {
+		if uNextId <= k {
+			uNextId = k + 1
+		}
+	}
+	if _, ok := r.Users[uNextId]; ok {
 		return 0, myerror.DBError(errors.New(myerror.ErrorDBDuplicateEntry))
 	}
-	if _, ok := r.userAuthentications[user.ID]; ok {
+	if _, ok := r.UserAuthentications[uNextId]; ok {
 		return 0, myerror.DBError(errors.New(myerror.ErrorDBDuplicateEntry))
 	}
-	r.users[user.ID] = user
-	r.userAuthentications[user.ID] = model.UserAuthentication{UserID: user.ID, PasswordDigest: userPassword}
+	user.ID = uNextId
+	r.Users[user.ID] = user
+	r.UserAuthentications[user.ID] = model.UserAuthentication{UserID: uNextId, PasswordDigest: userPassword}
 	return user.ID, nil
 }
 
-func (r userRepositoryMock) Save(user model.User) error {
+func (r UserRepositoryMock) Save(user model.User) error {
 	panic("not implement")
 }
 
-func (r userRepositoryMock) FindById(id model.UserID) (model.User, error) {
-	panic("not implement")
+func (r UserRepositoryMock) FindById(id model.UserID) (model.User, error) {
+	if user, ok := r.Users[id]; ok {
+		return user, nil
+	}
+	return model.User{}, model.UserNotFound()
 }
 
-func (r userRepositoryMock) FindByEmail(email model.UserEmail) (model.User, error) {
+func (r UserRepositoryMock) FindByEmail(email model.UserEmail) (model.User, error) {
 	panic("not implement")
 }

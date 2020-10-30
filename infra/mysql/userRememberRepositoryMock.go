@@ -5,16 +5,16 @@ import (
 	"user-go/domain/model"
 )
 
-type userRememberRepositoryMock struct {
+type UserRememberRepositoryMock struct {
 	userRemembers map[model.UserID]model.UserRemember
 }
 
-var _ interfaces.IUserRemenberRepository = userRememberRepositoryMock{}
+var _ interfaces.IUserRemenberRepository = UserRememberRepositoryMock{}
 
-func (r userRememberRepositoryMock) Save(userRemember model.UserRemember) error {
+func (r UserRememberRepositoryMock) Save(userRemember model.UserRemember) error {
 	panic("not implement")
 }
 
-func (r userRememberRepositoryMock) FindBySessionId(sessionId model.UserSessionId) (model.UserRemember, error) {
+func (r UserRememberRepositoryMock) FindBySessionId(sessionId model.UserSessionId) (model.UserRemember, error) {
 	panic("not implement")
 }
