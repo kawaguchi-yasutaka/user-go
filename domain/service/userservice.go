@@ -12,6 +12,8 @@ type UserService struct {
 	userRememberRepository       interfaces.IUserRemenberRepository
 	hasher                       interfaces.IHasher
 	userMailer                   interfaces.IUserMailer
+	randGenerator                interfaces.IRandGenerator
+	timekeeper                   interfaces.ITimeKeeper
 }
 
 func NewUserService(
@@ -20,6 +22,8 @@ func NewUserService(
 	userRememberRepository interfaces.IUserRemenberRepository,
 	hasher interfaces.IHasher,
 	userMailer interfaces.IUserMailer,
+	randGenerator interfaces.IRandGenerator,
+	timekeeper interfaces.ITimeKeeper,
 ) UserService {
 	return UserService{
 		userRepository:               userRepository,
@@ -27,6 +31,8 @@ func NewUserService(
 		userRememberRepository:       userRememberRepository,
 		hasher:                       hasher,
 		userMailer:                   userMailer,
+		randGenerator:                randGenerator,
+		timekeeper:                   timekeeper,
 	}
 }
 
@@ -39,7 +45,11 @@ func (service UserService) Create(email model.UserEmail, password model.UserRawP
 	if err != nil {
 		return model.UserID(0), err
 	}
-	code, expiresAt, err := model.NewAuthenticationCode()
+	randByte, err := service.randGenerator.GenerateRandByte(64)
+	if err != nil {
+		return model.UserID(0), err
+	}
+	code, expiresAt, err := model.NewAuthenticationCode(randByte, service.timekeeper.Now())
 	if err != nil {
 		return model.UserID(0), err
 	}
@@ -56,11 +66,11 @@ func (service UserService) Create(email model.UserEmail, password model.UserRawP
 }
 
 func (service UserService) Activate(code model.UserActivationCode, id model.UserID) error {
-	auth, err := service.userAuthenticationRepository.FindByActivateCode(code, id)
+	auth, err := service.userAuthenticationRepository.FindByActivateCodeAndUserID(code, id)
 	if err != nil {
 		return err
 	}
-	if err := auth.ValidateActivationCodeExpired(); err != nil {
+	if err := auth.ValidateActivationCodeExpired(service.timekeeper.Now()); err != nil {
 		return err
 	}
 	user, err := service.userRepository.FindById(id)
@@ -68,7 +78,7 @@ func (service UserService) Activate(code model.UserActivationCode, id model.User
 		return err
 	}
 	if user.IsActivated() {
-		return fmt.Errorf("already activated")
+		return model.AlreadyActivated(fmt.Sprintf("user id %v is already activated", id))
 	}
 
 	user.Activate()
@@ -88,11 +98,22 @@ func (service UserService) Login(email model.UserEmail, password model.UserRawPa
 	if err := service.hasher.ValidatePassword(password, auth.PasswordDigest); err != nil {
 		return model.UserSessionId(""), err
 	}
-	code, codeExpiresAt, err := model.NewMultiAuthenticationCode()
+
+	now := service.timekeeper.Now()
+	randByte, err := service.randGenerator.GenerateRandByte(64)
 	if err != nil {
 		return model.UserSessionId(""), err
 	}
-	sessionId, sessionIdExpiresAt, err := model.NewUserSessionId()
+	code, codeExpiresAt, err := model.NewMultiAuthenticationCode(randByte, now)
+	if err != nil {
+		return model.UserSessionId(""), err
+	}
+
+	randByte, err = service.randGenerator.GenerateRandByte(64)
+	if err != nil {
+		return model.UserSessionId(""), err
+	}
+	sessionId, sessionIdExpiresAt, err := model.NewUserSessionId(randByte, now)
 	if err != nil {
 		return model.UserSessionId(""), err
 	}
@@ -104,6 +125,7 @@ func (service UserService) Login(email model.UserEmail, password model.UserRawPa
 		code,
 		codeExpiresAt,
 	)
+
 	if err := service.userRememberRepository.Save(userRemember); err != nil {
 		return model.UserSessionId(""), err
 	}
@@ -132,9 +154,17 @@ func (service UserService) MultiAuthenticate(
 	if err != nil {
 		return err
 	}
-	if err := userRemember.ValidateMultiAuthenticationCode(code); err != nil {
+	if err := userRemember.ValidateMultiAuthenticationCode(code, service.timekeeper.Now()); err != nil {
 		return err
 	}
+	if userRemember.IsComplete() {
+		return model.AlreadyMultiAuthenticated(fmt.Sprintf(
+			"multiple authenticate code %v already completed",
+			code,
+		),
+		)
+	}
+
 	userRemember.Completed()
 
 	return service.userRememberRepository.Save(userRemember)

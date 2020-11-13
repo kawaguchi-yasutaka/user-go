@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"errors"
+	"fmt"
 	"gorm.io/gorm"
 	"user-go/domain/interfaces"
 	"user-go/domain/model"
@@ -63,7 +64,9 @@ func (repo UserRememberRepository) FindBySessionId(
 	remember := UserRemember{}
 	result := repo.db.Where("session_id = ?", string(sessionId)).First(&remember)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return model.UserRemember{}, model.UserAuthenticationNotFound()
+		return model.UserRemember{}, model.UserRememberNotFound(fmt.Sprintf(
+			"session id %v not found", sessionId),
+		)
 	}
 	if result.Error != nil {
 		return model.UserRemember{}, myerror.DBError(result.Error)

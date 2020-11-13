@@ -1,10 +1,8 @@
 package model
 
 import (
-	"crypto/rand"
 	"encoding/base64"
 	"fmt"
-	mathRand "math/rand"
 	"net/http"
 	"time"
 	"user-go/lib/myerror"
@@ -38,6 +36,8 @@ const (
 	ErrorExpiredUserMultiAuthenticationCode myerror.ErrorType = "expired_user_multi_authentication_code"
 	ErrorInvalidUserMultiAuthenticationCode myerror.ErrorType = "invalid_user_multi_authentication_code"
 	ErrorNotCompleteUserAuthentication      myerror.ErrorType = "not_complete_user_authentication"
+	ErrorUserRememberNotFound               myerror.ErrorType = "user_remember_not_found"
+	ErrorAlreadyMultiAuthenticated          myerror.ErrorType = "already_multi_authenticated"
 )
 
 func ExpiredUserMultiAuthenticationCode() myerror.CustomError {
@@ -52,25 +52,24 @@ func NotCompleteUserAuthentication(msg string) myerror.CustomError {
 	return myerror.NewCustomError(msg, ErrorNotCompleteUserAuthentication, http.StatusUnauthorized)
 }
 
-func NewMultiAuthenticationCode() (UserMultiAuthenticationCode, UserMultiAuthenticationCodeExpiresAt, error) {
-	b := make([]byte, 64)
-	if _, err := mathRand.Read(b); err != nil {
-		return UserMultiAuthenticationCode(""), UserMultiAuthenticationCodeExpiresAt(0), err
-	}
-	return UserMultiAuthenticationCode(
-			base64.URLEncoding.EncodeToString(b)),
-		UserMultiAuthenticationCodeExpiresAt(unixtime.NewUnixTime(time.Now().Add(time.Duration(24) * time.Hour))),
+func UserRememberNotFound(msg string) myerror.CustomError {
+	return myerror.NewCustomError(msg, ErrorUserRememberNotFound, http.StatusNotFound)
+}
+
+func AlreadyMultiAuthenticated(msg string) myerror.CustomError {
+	return myerror.NewCustomError(msg, ErrorAlreadyMultiAuthenticated, http.StatusBadRequest)
+}
+
+func NewMultiAuthenticationCode(rand []byte, now unixtime.UnixTime) (UserMultiAuthenticationCode, UserMultiAuthenticationCodeExpiresAt, error) {
+	return UserMultiAuthenticationCode(base64.URLEncoding.EncodeToString(rand)),
+		UserMultiAuthenticationCodeExpiresAt(now + unixtime.UnixTime(time.Duration(24)*time.Hour)),
 		nil
 }
 
-func NewUserSessionId() (UserSessionId, UserSessionIdExpiresAt, error) {
-	b := make([]byte, 64)
-	if _, err := rand.Read(b); err != nil {
-		return UserSessionId(""), UserSessionIdExpiresAt(0), err
-	}
+func NewUserSessionId(rand []byte, now unixtime.UnixTime) (UserSessionId, UserSessionIdExpiresAt, error) {
 	return UserSessionId(
-			base64.URLEncoding.EncodeToString(b)),
-		UserSessionIdExpiresAt(unixtime.NewUnixTime(time.Now().Add(time.Duration(24) * time.Hour))),
+			base64.URLEncoding.EncodeToString(rand)),
+		UserSessionIdExpiresAt(now + unixtime.UnixTime(time.Duration(24)*time.Hour)),
 		nil
 }
 
@@ -84,11 +83,11 @@ func (remember *UserRemember) UpdateSessionInfo(id UserSessionId, expiresAt User
 	remember.SessionIdExpiresAt = expiresAt
 }
 
-func (remember UserRemember) ValidateMultiAuthenticationCode(code UserMultiAuthenticationCode) error {
+func (remember UserRemember) ValidateMultiAuthenticationCode(code UserMultiAuthenticationCode, now unixtime.UnixTime) error {
 	if code != remember.MultiAuthenticationCode {
 		return InvalidUserMultiAuthenticationCode("invalid code")
 	}
-	if unixtime.UnixTime(remember.MultiAuthenticationCodeExpiresAt) <= unixtime.Now() {
+	if unixtime.UnixTime(remember.MultiAuthenticationCodeExpiresAt) <= now {
 		return ExpiredUserMultiAuthenticationCode()
 	}
 	return nil
@@ -123,4 +122,8 @@ func NewUserRememberBySingleFactorAuthentication(
 
 func (remember *UserRemember) Completed() {
 	remember.AuthenticationState = UserAuthenticationStateComplete
+}
+
+func (remember UserRemember) IsComplete() bool {
+	return remember.AuthenticationState == UserAuthenticationStateComplete
 }
