@@ -16,6 +16,8 @@ func NewService(infra Infra, repository Repository) Service {
 			repository.userRememberRepository,
 			infra.hasher,
 			infra.userMailer,
+			infra.randGenerator,
+			infra.timeKeeper,
 		),
 	}
 }
