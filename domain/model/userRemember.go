@@ -1,10 +1,8 @@
 package model
 
 import (
-	"crypto/rand"
 	"encoding/base64"
 	"fmt"
-	mathRand "math/rand"
 	"net/http"
 	"time"
 	"user-go/lib/myerror"
@@ -52,25 +50,16 @@ func NotCompleteUserAuthentication(msg string) myerror.CustomError {
 	return myerror.NewCustomError(msg, ErrorNotCompleteUserAuthentication, http.StatusUnauthorized)
 }
 
-func NewMultiAuthenticationCode() (UserMultiAuthenticationCode, UserMultiAuthenticationCodeExpiresAt, error) {
-	b := make([]byte, 64)
-	if _, err := mathRand.Read(b); err != nil {
-		return UserMultiAuthenticationCode(""), UserMultiAuthenticationCodeExpiresAt(0), err
-	}
-	return UserMultiAuthenticationCode(
-			base64.URLEncoding.EncodeToString(b)),
-		UserMultiAuthenticationCodeExpiresAt(unixtime.NewUnixTime(time.Now().Add(time.Duration(24) * time.Hour))),
+func NewMultiAuthenticationCode(rand []byte, now unixtime.UnixTime) (UserMultiAuthenticationCode, UserMultiAuthenticationCodeExpiresAt, error) {
+	return UserMultiAuthenticationCode(base64.URLEncoding.EncodeToString(rand)),
+		UserMultiAuthenticationCodeExpiresAt(now + unixtime.UnixTime(time.Duration(24)*time.Hour)),
 		nil
 }
 
-func NewUserSessionId() (UserSessionId, UserSessionIdExpiresAt, error) {
-	b := make([]byte, 64)
-	if _, err := rand.Read(b); err != nil {
-		return UserSessionId(""), UserSessionIdExpiresAt(0), err
-	}
+func NewUserSessionId(rand []byte, now unixtime.UnixTime) (UserSessionId, UserSessionIdExpiresAt, error) {
 	return UserSessionId(
-			base64.URLEncoding.EncodeToString(b)),
-		UserSessionIdExpiresAt(unixtime.NewUnixTime(time.Now().Add(time.Duration(24) * time.Hour))),
+			base64.URLEncoding.EncodeToString(rand)),
+		UserSessionIdExpiresAt(now + unixtime.UnixTime(time.Duration(24)*time.Hour)),
 		nil
 }
 

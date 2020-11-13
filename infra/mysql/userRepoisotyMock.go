@@ -14,6 +14,13 @@ type UserRepositoryMock struct {
 
 var _ interfaces.IUserRepository = UserRepositoryMock{}
 
+func NewUserRepositoryMock() UserRepositoryMock {
+	return UserRepositoryMock{
+		Users:               map[model.UserID]model.User{},
+		UserAuthentications: map[model.UserID]model.UserAuthentication{},
+	}
+}
+
 func (r UserRepositoryMock) Create(
 	user model.User,
 	userPassword model.UserPasswordDigest,
@@ -52,5 +59,10 @@ func (r UserRepositoryMock) FindById(id model.UserID) (model.User, error) {
 }
 
 func (r UserRepositoryMock) FindByEmail(email model.UserEmail) (model.User, error) {
-	panic("not implement")
+	for _, u := range r.Users {
+		if u.Email == email {
+			return u, nil
+		}
+	}
+	return model.User{}, model.UserNotFound()
 }

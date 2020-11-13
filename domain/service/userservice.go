@@ -98,11 +98,22 @@ func (service UserService) Login(email model.UserEmail, password model.UserRawPa
 	if err := service.hasher.ValidatePassword(password, auth.PasswordDigest); err != nil {
 		return model.UserSessionId(""), err
 	}
-	code, codeExpiresAt, err := model.NewMultiAuthenticationCode()
+
+	now := service.timekeeper.Now()
+	randByte, err := service.randGenerator.GenerateRandByte(64)
 	if err != nil {
 		return model.UserSessionId(""), err
 	}
-	sessionId, sessionIdExpiresAt, err := model.NewUserSessionId()
+	code, codeExpiresAt, err := model.NewMultiAuthenticationCode(randByte, now)
+	if err != nil {
+		return model.UserSessionId(""), err
+	}
+
+	randByte, err = service.randGenerator.GenerateRandByte(64)
+	if err != nil {
+		return model.UserSessionId(""), err
+	}
+	sessionId, sessionIdExpiresAt, err := model.NewUserSessionId(randByte, now)
 	if err != nil {
 		return model.UserSessionId(""), err
 	}
@@ -114,6 +125,7 @@ func (service UserService) Login(email model.UserEmail, password model.UserRawPa
 		code,
 		codeExpiresAt,
 	)
+
 	if err := service.userRememberRepository.Save(userRemember); err != nil {
 		return model.UserSessionId(""), err
 	}
