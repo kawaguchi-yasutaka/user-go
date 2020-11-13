@@ -18,7 +18,7 @@ import (
 
 func initUserService() UserService {
 	return UserService{
-		userRepository:               mysql.UserRepositoryMock{},
+		userRepository:               mysql.NewUserRepositoryMock(),
 		userAuthenticationRepository: mysql.UserAuthenticationRepositoryMock{},
 		userRememberRepository:       mysql.NewUserRememberRepositoryMock(),
 		hasher:                       hasher.HasherMock{},
