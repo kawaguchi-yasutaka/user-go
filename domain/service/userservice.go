@@ -12,6 +12,8 @@ type UserService struct {
 	userRememberRepository       interfaces.IUserRemenberRepository
 	hasher                       interfaces.IHasher
 	userMailer                   interfaces.IUserMailer
+	randGenerator                interfaces.IRandGenerator
+	timekeeper                   interfaces.ITimeKeeper
 }
 
 func NewUserService(
@@ -20,6 +22,8 @@ func NewUserService(
 	userRememberRepository interfaces.IUserRemenberRepository,
 	hasher interfaces.IHasher,
 	userMailer interfaces.IUserMailer,
+	randGenerator interfaces.IRandGenerator,
+	timekeeper interfaces.ITimeKeeper,
 ) UserService {
 	return UserService{
 		userRepository:               userRepository,
@@ -27,6 +31,8 @@ func NewUserService(
 		userRememberRepository:       userRememberRepository,
 		hasher:                       hasher,
 		userMailer:                   userMailer,
+		randGenerator:                randGenerator,
+		timekeeper:                   timekeeper,
 	}
 }
 
@@ -39,7 +45,11 @@ func (service UserService) Create(email model.UserEmail, password model.UserRawP
 	if err != nil {
 		return model.UserID(0), err
 	}
-	code, expiresAt, err := model.NewAuthenticationCode()
+	randByte, err := service.randGenerator.GenerateRandByte(64)
+	if err != nil {
+		return model.UserID(0), err
+	}
+	code, expiresAt, err := model.NewAuthenticationCode(randByte, service.timekeeper.Now())
 	if err != nil {
 		return model.UserID(0), err
 	}

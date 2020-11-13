@@ -1,12 +1,16 @@
 package service
 
 import (
+	"encoding/base64"
 	"reflect"
 	"testing"
+	"time"
 	"user-go/domain/model"
+	"user-go/domainClient/randGenerator"
 	"user-go/infra/hasher"
 	"user-go/infra/mailer"
 	"user-go/infra/mysql"
+	"user-go/infra/timekeeper"
 	"user-go/lib/myerror"
 	"user-go/lib/unixtime"
 )
@@ -18,16 +22,12 @@ func initUserService() UserService {
 		userRememberRepository:       mysql.UserRememberRepository{},
 		hasher:                       hasher.HasherMock{},
 		userMailer:                   mailer.MailerMock{},
+		randGenerator:                randGenerator.NewRandGeneratorMock(),
+		timekeeper:                   timekeeper.NewTimeKeeperMock(),
 	}
 }
 
 func TestUserService_Create(t *testing.T) {
-	service := initUserService()
-	users := make(map[model.UserID]model.User)
-	userAuthentications := make(map[model.UserID]model.UserAuthentication)
-	service.userRepository = mysql.UserRepositoryMock{Users: users, UserAuthentications: userAuthentications}
-	service.userAuthenticationRepository = mysql.UserAuthenticationRepositoryMock{UserAuthentications: userAuthentications}
-
 	tests := []struct {
 		caseName               string
 		email                  model.UserEmail
@@ -48,13 +48,22 @@ func TestUserService_Create(t *testing.T) {
 			wantUserAuthentication: model.UserAuthentication{
 				UserID:                  1,
 				PasswordDigest:          "password",
-				ActivationCode:          model.UserActivationCode(""),
-				ActivationCodeExpiresAt: model.UserActivationCodeExpiresAt(unixtime.UnixTime(0)),
+				ActivationCode:          model.UserActivationCode(base64.URLEncoding.EncodeToString([]byte("activate code"))),
+				ActivationCodeExpiresAt: model.UserActivationCodeExpiresAt(unixtime.UnixTime(time.Hour * 24)),
 			},
 			wantErr: nil,
 		},
 	}
 	for _, tt := range tests {
+		service := initUserService()
+		users := make(map[model.UserID]model.User)
+		userAuthentications := make(map[model.UserID]model.UserAuthentication)
+		service.userRepository = mysql.UserRepositoryMock{Users: users, UserAuthentications: userAuthentications}
+		service.userAuthenticationRepository = mysql.UserAuthenticationRepositoryMock{UserAuthentications: userAuthentications}
+
+		service.timekeeper = timekeeper.TimeKeeperMock{N: 0}
+		service.randGenerator = randGenerator.RandGeneratorMock{RandByte: []byte("activate code")}
+
 		userID, err := service.Create(tt.email, tt.password)
 		if !myerror.EqualErrorType(err, tt.wantErr) {
 			t.Errorf("casename: %v, err: %v,wantErr: %v", tt.caseName, err, tt.wantErr)
@@ -77,7 +86,6 @@ func TestUserService_Create(t *testing.T) {
 		}
 	}
 }
-
 func TestUserService_Activate(t *testing.T) {
 	service := initUserService()
 	users := map[model.UserID]model.User{1: {ID: 1}, 2: {ID: 2, Status: model.UserStatusActivated}, 3: {ID: 3}}

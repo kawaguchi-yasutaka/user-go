@@ -3,7 +3,6 @@ package model
 import (
 	"encoding/base64"
 	"github.com/go-playground/validator/v10"
-	mathRand "math/rand"
 	"net/http"
 	"time"
 	"user-go/lib/myerror"
@@ -59,17 +58,11 @@ func NewUserAuthentication(userId UserID, passwordDigest UserPasswordDigest) Use
 	}
 }
 
-func NewAuthenticationCode() (UserActivationCode, UserActivationCodeExpiresAt, error) {
-	b := make([]byte, 64)
-	if _, err := mathRand.Read(b); err != nil {
-		return UserActivationCode(""), UserActivationCodeExpiresAt(0), err
-	}
-	return UserActivationCode(
-			base64.URLEncoding.EncodeToString(b)),
-		UserActivationCodeExpiresAt(unixtime.NewUnixTime(time.Now().Add(time.Duration(24) * time.Hour))),
+func NewAuthenticationCode(rand []byte, now unixtime.UnixTime) (UserActivationCode, UserActivationCodeExpiresAt, error) {
+	return UserActivationCode(base64.URLEncoding.EncodeToString(rand)),
+		UserActivationCodeExpiresAt(now + unixtime.UnixTime(time.Hour*24)),
 		nil
 }
-
 func NewUserRawPassword(password string) (UserRawPassword, error) {
 	if err := Validate.Var(password, "required,min=8"); err != nil {
 		for _, err := range err.(validator.ValidationErrors) {
