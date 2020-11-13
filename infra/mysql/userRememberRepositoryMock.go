@@ -23,5 +23,10 @@ func (r UserRememberRepositoryMock) Save(userRemember model.UserRemember) error 
 }
 
 func (r UserRememberRepositoryMock) FindBySessionId(sessionId model.UserSessionId) (model.UserRemember, error) {
-	panic("not implement")
+	for _, v := range r.UserRemembers {
+		if v.SessionId == sessionId {
+			return v, nil
+		}
+	}
+	return model.UserRemember{}, model.UserRememberNotFound("")
 }

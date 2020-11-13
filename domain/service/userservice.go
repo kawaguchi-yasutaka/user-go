@@ -154,9 +154,17 @@ func (service UserService) MultiAuthenticate(
 	if err != nil {
 		return err
 	}
-	if err := userRemember.ValidateMultiAuthenticationCode(code); err != nil {
+	if err := userRemember.ValidateMultiAuthenticationCode(code, service.timekeeper.Now()); err != nil {
 		return err
 	}
+	if userRemember.IsComplete() {
+		return model.AlreadyMultiAuthenticated(fmt.Sprintf(
+			"multiple authenticate code %v already completed",
+			code,
+		),
+		)
+	}
+
 	userRemember.Completed()
 
 	return service.userRememberRepository.Save(userRemember)
