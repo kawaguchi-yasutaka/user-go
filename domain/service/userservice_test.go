@@ -245,3 +245,64 @@ func TestUserService_Login(t *testing.T) {
 		}
 	}
 }
+
+func TestUserService_MultiAuthenticate(t *testing.T) {
+	tests := []struct {
+		caseName  string
+		code      model.UserMultiAuthenticationCode
+		sessionID model.UserSessionId
+		wantErr   error
+	}{
+		{
+			caseName:  "2段階認証成功",
+			code:      model.UserMultiAuthenticationCode("1"),
+			sessionID: model.UserSessionId("1"),
+			wantErr:   nil,
+		},
+		{
+			caseName:  "セッションIDに紐づいてる二段階認証コードとリクエストのコードが不一致",
+			code:      model.UserMultiAuthenticationCode("3"),
+			sessionID: model.UserSessionId("2"),
+			wantErr:   model.InvalidUserMultiAuthenticationCode(""),
+		},
+		{
+			caseName:  "二段階認証コードが、期限切れ",
+			code:      model.UserMultiAuthenticationCode("3"),
+			sessionID: model.UserSessionId("3"),
+			wantErr:   model.ExpiredUserMultiAuthenticationCode(),
+		},
+		{
+			caseName:  "既に二段階認証済み",
+			code:      model.UserMultiAuthenticationCode("4"),
+			sessionID: model.UserSessionId("4"),
+			wantErr:   model.AlreadyMultiAuthenticated(""),
+		},
+	}
+
+	for _, tt := range tests {
+		service := initUserService()
+		userRemembers := map[model.UserSessionId]model.UserRemember{
+			model.UserSessionId("1"): {SessionId: "1", MultiAuthenticationCode: "1", MultiAuthenticationCodeExpiresAt: 1},
+			model.UserSessionId("2"): {SessionId: "2", MultiAuthenticationCode: "2", MultiAuthenticationCodeExpiresAt: 1},
+			model.UserSessionId("3"): {SessionId: "3", MultiAuthenticationCode: "3", MultiAuthenticationCodeExpiresAt: 0},
+			model.UserSessionId("4"): {SessionId: "4", MultiAuthenticationCode: "4", MultiAuthenticationCodeExpiresAt: 1, AuthenticationState: model.UserAuthenticationStateComplete},
+		}
+		service.userRememberRepository = mysql.UserRememberRepositoryMock{
+			UserRemembers: userRemembers,
+		}
+		service.timekeeper = timekeeper.TimeKeeperMock{N: 0}
+
+		if err := service.MultiAuthenticate(tt.code, tt.sessionID); !myerror.EqualErrorType(err, tt.wantErr) {
+			t.Errorf("casename: %v, err: %v,wantErr: %v", tt.caseName, err, tt.wantErr)
+		}
+		if tt.wantErr == nil {
+			v, ok := userRemembers[tt.sessionID]
+			if !ok {
+				t.Errorf("casename: %v, user remember not found", tt.caseName)
+			}
+			if !v.IsComplete() {
+				t.Errorf("casename: %v, multi authenticate not complete %v", tt.caseName, v.AuthenticationState)
+			}
+		}
+	}
+}
