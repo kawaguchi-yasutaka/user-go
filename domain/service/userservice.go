@@ -70,7 +70,7 @@ func (service UserService) Activate(code model.UserActivationCode, id model.User
 	if err != nil {
 		return err
 	}
-	if err := auth.ValidateActivationCodeExpired(); err != nil {
+	if err := auth.ValidateActivationCodeExpired(service.timekeeper.Now()); err != nil {
 		return err
 	}
 	user, err := service.userRepository.FindById(id)
@@ -78,7 +78,7 @@ func (service UserService) Activate(code model.UserActivationCode, id model.User
 		return err
 	}
 	if user.IsActivated() {
-		return fmt.Errorf("already activated")
+		return model.AlreadyActivated(fmt.Sprintf("user id %v is already activated", id))
 	}
 
 	user.Activate()
