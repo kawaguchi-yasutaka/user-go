@@ -86,17 +86,8 @@ func TestUserService_Create(t *testing.T) {
 		}
 	}
 }
-func TestUserService_Activate(t *testing.T) {
-	service := initUserService()
-	users := map[model.UserID]model.User{1: {ID: 1}, 2: {ID: 2, Status: model.UserStatusActivated}, 3: {ID: 3}}
-	userAuthentications := map[model.UserID]model.UserAuthentication{
-		1: {UserID: 1, ActivationCode: "1"},
-		2: {UserID: 2, ActivationCode: "2"},
-		3: {UserID: 3, ActivationCode: "3"},
-	}
-	service.userRepository = mysql.UserRepositoryMock{Users: users, UserAuthentications: userAuthentications}
-	service.userAuthenticationRepository = mysql.UserAuthenticationRepositoryMock{UserAuthentications: userAuthentications}
 
+func TestUserService_Activate(t *testing.T) {
 	tests := []struct {
 		caseName   string
 		code       model.UserActivationCode
@@ -114,20 +105,31 @@ func TestUserService_Activate(t *testing.T) {
 		{
 			caseName:   "既に有効化済み",
 			code:       model.UserActivationCode("2"),
-			id:         model.UserID(1),
+			id:         model.UserID(2),
 			wantStatus: model.UserStatusActivated,
-			wantErr:    nil,
+			wantErr:    model.AlreadyActivated(""),
 		},
 		{
 			caseName:   "アクティベートコードが期限切れ",
 			code:       model.UserActivationCode("3"),
-			id:         model.UserID(1),
+			id:         model.UserID(3),
 			wantStatus: model.UserStatusActivated,
-			wantErr:    nil,
+			wantErr:    model.ExpiredUserActivationCode(),
 		},
 	}
 
 	for _, tt := range tests {
+		service := initUserService()
+		users := map[model.UserID]model.User{1: {ID: 1}, 2: {ID: 2, Status: model.UserStatusActivated}, 3: {ID: 3}}
+		userAuthentications := map[model.UserID]model.UserAuthentication{
+			1: {UserID: 1, ActivationCode: "1", ActivationCodeExpiresAt: 1},
+			2: {UserID: 2, ActivationCode: "2", ActivationCodeExpiresAt: 1},
+			3: {UserID: 3, ActivationCode: "3", ActivationCodeExpiresAt: 0},
+		}
+		service.userRepository = mysql.UserRepositoryMock{Users: users, UserAuthentications: userAuthentications}
+		service.userAuthenticationRepository = mysql.UserAuthenticationRepositoryMock{UserAuthentications: userAuthentications}
+		service.timekeeper = timekeeper.TimeKeeperMock{N: 0}
+
 		err := service.Activate(tt.code, tt.id)
 		if !myerror.EqualErrorType(err, tt.wantErr) {
 			t.Errorf("casename: %v, err: %v,wantErr: %v", tt.caseName, err, tt.wantErr)

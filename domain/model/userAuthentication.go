@@ -84,8 +84,8 @@ func (authentication *UserAuthentication) UpdateActivationCode(code UserActivati
 	authentication.ActivationCodeExpiresAt = expiresAt
 }
 
-func (authentication UserAuthentication) ValidateActivationCodeExpired() error {
-	if unixtime.UnixTime(authentication.ActivationCodeExpiresAt) <= unixtime.Now() {
+func (authentication UserAuthentication) ValidateActivationCodeExpired(now unixtime.UnixTime) error {
+	if unixtime.UnixTime(authentication.ActivationCodeExpiresAt) <= now {
 		return ExpiredUserActivationCode()
 	}
 	return nil

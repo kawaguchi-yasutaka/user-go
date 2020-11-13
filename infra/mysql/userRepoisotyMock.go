@@ -37,7 +37,11 @@ func (r UserRepositoryMock) Create(
 }
 
 func (r UserRepositoryMock) Save(user model.User) error {
-	panic("not implement")
+	if _, ok := r.Users[user.ID]; ok {
+		r.Users[user.ID] = user
+		return nil
+	}
+	return myerror.DBError(errors.New(myerror.ErrorDBError))
 }
 
 func (r UserRepositoryMock) FindById(id model.UserID) (model.User, error) {

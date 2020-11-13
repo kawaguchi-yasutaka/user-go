@@ -34,6 +34,7 @@ const (
 	ErrorRequiredUserEmail      myerror.ErrorType = "required_user_email"
 	ErrorInvalidFormatUserEmail myerror.ErrorType = "invalid_format_user_email"
 	ErrorIncorrectUserPassword  myerror.ErrorType = "incorrect_user_password"
+	ErrorAlreadyActivated       myerror.ErrorType = "already_activated"
 )
 
 func NewUser(email UserEmail) User {
@@ -56,6 +57,10 @@ func InvalidFormatUserEmail(msg string) myerror.CustomError {
 
 func IncorrectUserPassword(msg string) myerror.CustomError {
 	return myerror.NewCustomError(msg, ErrorIncorrectUserPassword, http.StatusBadRequest)
+}
+
+func AlreadyActivated(msg string) myerror.CustomError {
+	return myerror.NewCustomError(msg, ErrorAlreadyActivated, http.StatusBadRequest)
 }
 
 func NewUserEmail(email string) (UserEmail, error) {
