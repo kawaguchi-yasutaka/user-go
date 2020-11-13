@@ -7,6 +7,7 @@ import (
 	"time"
 	"user-go/domain/model"
 	"user-go/domainClient/randGenerator"
+	"user-go/domainClient/userMailer"
 	"user-go/infra/hasher"
 	"user-go/infra/mailer"
 	"user-go/infra/mysql"
@@ -19,7 +20,7 @@ func initUserService() UserService {
 	return UserService{
 		userRepository:               mysql.UserRepositoryMock{},
 		userAuthenticationRepository: mysql.UserAuthenticationRepositoryMock{},
-		userRememberRepository:       mysql.UserRememberRepository{},
+		userRememberRepository:       mysql.NewUserRememberRepositoryMock(),
 		hasher:                       hasher.HasherMock{},
 		userMailer:                   mailer.MailerMock{},
 		randGenerator:                randGenerator.NewRandGeneratorMock(),
@@ -141,6 +142,105 @@ func TestUserService_Activate(t *testing.T) {
 			}
 			if user.Status != tt.wantStatus {
 				t.Errorf("casename: %v, status %v want status %v", tt.caseName, user.Status, tt.wantStatus)
+			}
+		}
+	}
+}
+
+func TestUserService_Login(t *testing.T) {
+	tests := []struct {
+		caseName         string
+		email            model.UserEmail
+		password         model.UserRawPassword
+		want             model.UserSessionId
+		wantErr          error
+		wantUserRemember *model.UserRemember
+		mailSended       bool
+	}{
+		{
+			caseName: "ログイン成功",
+			email:    "1@test.com",
+			password: "password",
+			want: model.UserSessionId(
+				base64.URLEncoding.EncodeToString(
+					[]byte("randbyte"),
+				),
+			),
+			wantErr: nil,
+			wantUserRemember: &model.UserRemember{
+				UserID: 1,
+				SessionId: model.UserSessionId(
+					base64.URLEncoding.EncodeToString(
+						[]byte("randbyte"),
+					),
+				),
+				SessionIdExpiresAt: model.UserSessionIdExpiresAt(
+					unixtime.UnixTime(time.Hour * 24),
+				),
+				MultiAuthenticationCode: model.UserMultiAuthenticationCode(
+					base64.URLEncoding.EncodeToString(
+						[]byte("randbyte"),
+					),
+				),
+				MultiAuthenticationCodeExpiresAt: model.UserMultiAuthenticationCodeExpiresAt(
+					unixtime.UnixTime(time.Hour * 24),
+				),
+				AuthenticationState: model.UserAuthenticationStatePendding,
+			},
+			mailSended: true,
+		},
+		{
+			caseName:         "ユーザー見つからない",
+			email:            "2@test.com",
+			password:         "password",
+			want:             model.UserSessionId(""),
+			wantErr:          model.UserNotFound(),
+			wantUserRemember: nil,
+			mailSended:       false,
+		},
+		{
+			caseName:         "パスワードが違う",
+			email:            "3@test.com",
+			password:         "not correct",
+			want:             model.UserSessionId(""),
+			wantErr:          model.IncorrectUserPassword(""),
+			wantUserRemember: nil,
+			mailSended:       false,
+		},
+	}
+
+	for _, tt := range tests {
+		service := initUserService()
+		users := map[model.UserID]model.User{1: {ID: 1, Email: "1@test.com"}, 3: {ID: 3, Email: "3@test.com"}}
+		userRemembers := map[model.UserSessionId]model.UserRemember{}
+		userAuthentications := map[model.UserID]model.UserAuthentication{
+			1: {UserID: 1, PasswordDigest: "password"},
+			3: {UserID: 3, PasswordDigest: "password"},
+		}
+
+		multiAuthenticationCodeSendedCount := 0
+
+		service.userRepository = mysql.UserRepositoryMock{Users: users}
+		service.userRememberRepository = mysql.UserRememberRepositoryMock{UserRemembers: userRemembers}
+		service.randGenerator = randGenerator.RandGeneratorMock{RandByte: []byte("randbyte")}
+		service.userMailer = userMailer.UserMailerMock{MultiAuthenticationCodeSendedCount: &multiAuthenticationCodeSendedCount}
+		service.userAuthenticationRepository = mysql.UserAuthenticationRepositoryMock{UserAuthentications: userAuthentications}
+
+		result, err := service.Login(tt.email, tt.password)
+		if !myerror.EqualErrorType(err, tt.wantErr) {
+			t.Errorf("casename: %v, err: %v,wantErr: %v", tt.caseName, err, tt.wantErr)
+		}
+		if result != tt.want {
+			t.Errorf("casename: %v, result: %v,want: %v", tt.caseName, result, tt.want)
+		}
+		if tt.wantUserRemember != nil {
+			if userRemembers[result] != *tt.wantUserRemember {
+				t.Errorf("casename: %v, user remember: %v,want: %v", tt.caseName, result, tt.wantUserRemember)
+			}
+		}
+		if tt.mailSended {
+			if multiAuthenticationCodeSendedCount != 1 {
+				t.Errorf("casename: %v, mail send failed", tt.caseName)
 			}
 		}
 	}
