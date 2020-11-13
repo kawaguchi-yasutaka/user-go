@@ -65,7 +65,7 @@ func (repo UserAuthenticationRepository) FindByUserID(
 	return auth.ToModel(), nil
 }
 
-func (repo UserAuthenticationRepository) FindByActivateCode(
+func (repo UserAuthenticationRepository) FindByActivateCodeAndUserID(
 	code model.UserActivationCode,
 	id model.UserID,
 ) (model.UserAuthentication, error) {

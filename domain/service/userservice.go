@@ -66,7 +66,7 @@ func (service UserService) Create(email model.UserEmail, password model.UserRawP
 }
 
 func (service UserService) Activate(code model.UserActivationCode, id model.UserID) error {
-	auth, err := service.userAuthenticationRepository.FindByActivateCode(code, id)
+	auth, err := service.userAuthenticationRepository.FindByActivateCodeAndUserID(code, id)
 	if err != nil {
 		return err
 	}

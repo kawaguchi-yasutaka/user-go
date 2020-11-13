@@ -23,7 +23,7 @@ func (r UserAuthenticationRepositoryMock) FindByUserID(UserID model.UserID) (mod
 	return model.UserAuthentication{}, model.UserAuthenticationNotFound()
 }
 
-func (r UserAuthenticationRepositoryMock) FindByActivateCode(code model.UserActivationCode, id model.UserID) (model.UserAuthentication, error) {
+func (r UserAuthenticationRepositoryMock) FindByActivateCodeAndUserID(code model.UserActivationCode, id model.UserID) (model.UserAuthentication, error) {
 	for _, v := range r.UserAuthentications {
 		if v.UserID == id && v.ActivationCode == code {
 			return v, nil
