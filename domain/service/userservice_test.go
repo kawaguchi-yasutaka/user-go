@@ -306,3 +306,7 @@ func TestUserService_MultiAuthenticate(t *testing.T) {
 		}
 	}
 }
+
+func TestUserService_GenerateJwtToken(t *testing.T) {
+
+}

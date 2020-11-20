@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"github.com/joho/godotenv"
+	"io/ioutil"
 	"os"
 )
 
@@ -24,6 +25,8 @@ type APPConfig struct {
 	EmailAddress  string
 	EmailPassword string
 	EmailHost     string
+	JwtPrivateKey []byte
+	JwtPublicKey  []byte
 }
 
 func SetConfig() Config {
@@ -55,4 +58,19 @@ func (config *Config) setAppConfig() {
 	config.APP.EmailAddress = os.Getenv("APP_EMAIL_ADDRESS")
 	config.APP.EmailPassword = os.Getenv("APP_EMAIL_PASSWORD")
 	config.APP.EmailHost = os.Getenv("APP_EMAIL_HOST")
+	config.APP.JwtPrivateKey = MustReadAllFromFile("jwtRS256.key")
+	config.APP.JwtPublicKey = MustReadAllFromFile("jwtRS256.key.pub")
+}
+
+func MustReadAllFromFile(path string) []byte {
+	file, err := os.Open(path)
+	if err != nil {
+		panic(err)
+	}
+	bytes, err := ioutil.ReadAll(file)
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+	return bytes
 }

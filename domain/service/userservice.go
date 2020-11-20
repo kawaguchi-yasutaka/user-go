@@ -14,6 +14,7 @@ type UserService struct {
 	userMailer                   interfaces.IUserMailer
 	randGenerator                interfaces.IRandGenerator
 	timekeeper                   interfaces.ITimeKeeper
+	jwtGenerator                 interfaces.IJwtGenerator
 }
 
 func NewUserService(
@@ -24,6 +25,7 @@ func NewUserService(
 	userMailer interfaces.IUserMailer,
 	randGenerator interfaces.IRandGenerator,
 	timekeeper interfaces.ITimeKeeper,
+	jwtGenerator interfaces.IJwtGenerator,
 ) UserService {
 	return UserService{
 		userRepository:               userRepository,
@@ -33,6 +35,7 @@ func NewUserService(
 		userMailer:                   userMailer,
 		randGenerator:                randGenerator,
 		timekeeper:                   timekeeper,
+		jwtGenerator:                 jwtGenerator,
 	}
 }
 
@@ -172,4 +175,8 @@ func (service UserService) MultiAuthenticate(
 
 func (service UserService) ReSendActivateCodeEmail(userID model.UserID) error {
 	return nil
+}
+
+func (service UserService) GenerateJwtToken() (string, error) {
+
 }
