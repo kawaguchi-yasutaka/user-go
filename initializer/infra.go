@@ -6,7 +6,8 @@ import (
 	"user-go/domainClient/randGenerator"
 	"user-go/domainClient/userMailer"
 	"user-go/infra/hasher"
-	"user-go/infra/jwtGenerator"
+	"user-go/infra/jwtgenerator"
+	"user-go/infra/jwthandler"
 	"user-go/infra/mailer"
 	"user-go/infra/timekeeper"
 )
@@ -17,6 +18,7 @@ type Infra struct {
 	randGenerator interfaces.IRandGenerator
 	timeKeeper    interfaces.ITimeKeeper
 	jwtGenerator  interfaces.IJwtGenerator
+	jwtHandler    interfaces.IJwtHandler
 }
 
 func NewInfra(config config.Config) Infra {
@@ -26,6 +28,7 @@ func NewInfra(config config.Config) Infra {
 		userMailer:    userMailer.NewUserMailer(config.APP.URL, m),
 		randGenerator: randGenerator.NewRandGenerator(),
 		timeKeeper:    timekeeper.NewTimeKeeper(),
-		jwtGenerator:  jwtGenerator.NewJwtGenerator(config.APP.JwtPrivateKey),
+		jwtGenerator:  jwtgenerator.NewJwtGenerator(config.APP.JwtPrivateKey),
+		jwtHandler:    jwthandler.NewJwtHandler(config.APP.JwtPublicKey),
 	}
 }
