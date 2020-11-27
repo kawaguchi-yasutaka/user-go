@@ -1,4 +1,4 @@
-package jwtGenerator
+package jwtgenerator
 
 import (
 	"crypto/rsa"
