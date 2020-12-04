@@ -8,6 +8,7 @@ import (
 	"user-go/domain/service"
 	"user-go/web/middlewares"
 	"user-go/web/request"
+	"user-go/web/response"
 )
 
 type UserHandler struct {
@@ -93,4 +94,16 @@ func (handler UserHandler) MultiAuthenticate(c echo.Context) error {
 		return err
 	}
 	return c.NoContent(http.StatusOK)
+}
+
+func (handler UserHandler) MultiAuthenticateAndGetJWT(c echo.Context) error {
+	sessionId := middlewares.GetAuth(c)
+	token, err := handler.UserService.MultiAuthenticateAndGetJWT(
+		model.UserMultiAuthenticationCode(c.QueryParam("code")),
+		model.UserSessionId(sessionId),
+	)
+	if err != nil {
+		return err
+	}
+	return c.JSON(http.StatusOK, response.NewUserMultiAuthenticateAndGetJWTResponse(token))
 }

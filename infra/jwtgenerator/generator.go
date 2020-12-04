@@ -3,10 +3,17 @@ package jwtgenerator
 import (
 	"crypto/rsa"
 	"github.com/dgrijalva/jwt-go"
+	"user-go/domain/model"
+	"user-go/lib/unixtime"
 )
 
 type JwtGenerator struct {
 	key *rsa.PrivateKey
+}
+
+type MyCustomClaim struct {
+	UserId int64 `json:"userid"`
+	jwt.StandardClaims
 }
 
 func NewJwtGenerator(key []byte) JwtGenerator {
@@ -19,7 +26,14 @@ func NewJwtGenerator(key []byte) JwtGenerator {
 	}
 }
 
-func (g JwtGenerator) Generate(claim map[string]interface{}) (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims(claim))
+func (g JwtGenerator) Generate(userId model.UserID, exp unixtime.UnixTime) (string, error) {
+	claims := MyCustomClaim{
+		int64(userId),
+		jwt.StandardClaims{
+			ExpiresAt: int64(exp),
+			Issuer:    "user-go",
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
 	return token.SignedString(g.key)
 }

@@ -17,8 +17,8 @@ type Infra struct {
 	userMailer    interfaces.IUserMailer
 	randGenerator interfaces.IRandGenerator
 	timeKeeper    interfaces.ITimeKeeper
-	jwtGenerator  interfaces.IJwtGenerator
-	jwtHandler    interfaces.IJwtHandler
+	jwtGenerator  jwtgenerator.JwtGenerator
+	jwtHandler    jwthandler.JwtHandler
 }
 
 func NewInfra(config config.Config) Infra {

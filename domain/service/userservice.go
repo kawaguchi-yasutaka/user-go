@@ -2,8 +2,10 @@ package service
 
 import (
 	"fmt"
+	"time"
 	"user-go/domain/interfaces"
 	"user-go/domain/model"
+	"user-go/lib/unixtime"
 )
 
 type UserService struct {
@@ -14,7 +16,8 @@ type UserService struct {
 	userMailer                   interfaces.IUserMailer
 	randGenerator                interfaces.IRandGenerator
 	timekeeper                   interfaces.ITimeKeeper
-	jwtGenerator                 interfaces.IJwtGenerator
+	jwtGeneratorClient           interfaces.IJwtGeneratorClient
+	jwtHandlerClient             interfaces.IJwtHandlerClient
 }
 
 func NewUserService(
@@ -25,7 +28,8 @@ func NewUserService(
 	userMailer interfaces.IUserMailer,
 	randGenerator interfaces.IRandGenerator,
 	timekeeper interfaces.ITimeKeeper,
-	jwtGenerator interfaces.IJwtGenerator,
+	jwtGeneratorClient interfaces.IJwtGeneratorClient,
+	jwtHandlerClient interfaces.IJwtHandlerClient,
 ) UserService {
 	return UserService{
 		userRepository:               userRepository,
@@ -35,7 +39,8 @@ func NewUserService(
 		userMailer:                   userMailer,
 		randGenerator:                randGenerator,
 		timekeeper:                   timekeeper,
-		jwtGenerator:                 jwtGenerator,
+		jwtGeneratorClient:           jwtGeneratorClient,
+		jwtHandlerClient:             jwtHandlerClient,
 	}
 }
 
@@ -173,10 +178,17 @@ func (service UserService) MultiAuthenticate(
 	return service.userRememberRepository.Save(userRemember)
 }
 
-func (service UserService) ReSendActivateCodeEmail(userID model.UserID) error {
-	return nil
+func (service UserService) MultiAuthenticateAndGetJWT(code model.UserMultiAuthenticationCode, sessionId model.UserSessionId) (string, error) {
+	if err := service.MultiAuthenticate(code, sessionId); err != nil {
+		return "", err
+	}
+	userRemember, err := service.userRememberRepository.FindBySessionId(sessionId)
+	if err != nil {
+		return "", err
+	}
+	return service.jwtGeneratorClient.GenerateToken(userRemember.UserID, service.timekeeper.Now()+unixtime.UnixTime(time.Hour*24))
 }
 
-func (service UserService) GenerateJwtToken() (string, error) {
-
+func (service UserService) ReSendActivateCodeEmail(userID model.UserID) error {
+	return nil
 }

@@ -41,7 +41,7 @@ const (
 )
 
 func ExpiredUserMultiAuthenticationCode() myerror.CustomError {
-	return myerror.NewCustomError("expired multi authentication code", ErrorExpiredUserMultiAuthenticationCode, http.StatusBadRequest)
+	return myerror.NewCustomError("expired multi authorization code", ErrorExpiredUserMultiAuthenticationCode, http.StatusBadRequest)
 }
 
 func InvalidUserMultiAuthenticationCode(msg string) myerror.CustomError {
