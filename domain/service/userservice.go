@@ -5,6 +5,7 @@ import (
 	"time"
 	"user-go/domain/interfaces"
 	"user-go/domain/model"
+	"user-go/lib/authorization"
 	"user-go/lib/unixtime"
 )
 
@@ -143,15 +144,12 @@ func (service UserService) Login(email model.UserEmail, password model.UserRawPa
 	return sessionId, nil
 }
 
-func (service UserService) Logind(sessionId model.UserSessionId) (model.UserID, error) {
-	userRemember, err := service.userRememberRepository.FindBySessionId(sessionId)
+func (service UserService) Logind(token authorization.TokenString) (model.UserID, error) {
+	auth, err := service.jwtHandlerClient.Parse(token)
 	if err != nil {
-		return 0, model.UserUnauthorized(err.Error())
+		return 0, nil
 	}
-	if err := userRemember.ValidateSession(); err != nil {
-		return 0, err
-	}
-	return userRemember.UserID, nil
+	return model.UserID(auth.UserID), nil
 }
 
 func (service UserService) MultiAuthenticate(
