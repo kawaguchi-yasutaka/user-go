@@ -2,8 +2,11 @@ package service
 
 import (
 	"fmt"
+	"time"
 	"user-go/domain/interfaces"
 	"user-go/domain/model"
+	"user-go/lib/authorization"
+	"user-go/lib/unixtime"
 )
 
 type UserService struct {
@@ -14,6 +17,8 @@ type UserService struct {
 	userMailer                   interfaces.IUserMailer
 	randGenerator                interfaces.IRandGenerator
 	timekeeper                   interfaces.ITimeKeeper
+	jwtGeneratorClient           interfaces.IJwtGeneratorClient
+	jwtHandlerClient             interfaces.IJwtHandlerClient
 }
 
 func NewUserService(
@@ -24,6 +29,8 @@ func NewUserService(
 	userMailer interfaces.IUserMailer,
 	randGenerator interfaces.IRandGenerator,
 	timekeeper interfaces.ITimeKeeper,
+	jwtGeneratorClient interfaces.IJwtGeneratorClient,
+	jwtHandlerClient interfaces.IJwtHandlerClient,
 ) UserService {
 	return UserService{
 		userRepository:               userRepository,
@@ -33,6 +40,8 @@ func NewUserService(
 		userMailer:                   userMailer,
 		randGenerator:                randGenerator,
 		timekeeper:                   timekeeper,
+		jwtGeneratorClient:           jwtGeneratorClient,
+		jwtHandlerClient:             jwtHandlerClient,
 	}
 }
 
@@ -135,15 +144,12 @@ func (service UserService) Login(email model.UserEmail, password model.UserRawPa
 	return sessionId, nil
 }
 
-func (service UserService) Logind(sessionId model.UserSessionId) (model.UserID, error) {
-	userRemember, err := service.userRememberRepository.FindBySessionId(sessionId)
+func (service UserService) Logind(token authorization.TokenString) (model.UserID, error) {
+	auth, err := service.jwtHandlerClient.Parse(token)
 	if err != nil {
-		return 0, model.UserUnauthorized(err.Error())
+		return 0, nil
 	}
-	if err := userRemember.ValidateSession(); err != nil {
-		return 0, err
-	}
-	return userRemember.UserID, nil
+	return model.UserID(auth.UserID), nil
 }
 
 func (service UserService) MultiAuthenticate(
@@ -168,6 +174,17 @@ func (service UserService) MultiAuthenticate(
 	userRemember.Completed()
 
 	return service.userRememberRepository.Save(userRemember)
+}
+
+func (service UserService) MultiAuthenticateAndGetJWT(code model.UserMultiAuthenticationCode, sessionId model.UserSessionId) (string, error) {
+	if err := service.MultiAuthenticate(code, sessionId); err != nil {
+		return "", err
+	}
+	userRemember, err := service.userRememberRepository.FindBySessionId(sessionId)
+	if err != nil {
+		return "", err
+	}
+	return service.jwtGeneratorClient.GenerateToken(userRemember.UserID, service.timekeeper.Now()+unixtime.UnixTime(time.Hour*24))
 }
 
 func (service UserService) ReSendActivateCodeEmail(userID model.UserID) error {

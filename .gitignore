@@ -1,2 +1,4 @@
 .idea/
 .env.local
+.jwtRS256.key
+.jwtRS256.key.pub

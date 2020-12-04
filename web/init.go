@@ -37,7 +37,8 @@ func Init(service initializer.Service) {
 	users.GET("/:id/activate", userHandler.Activate)
 	users.POST("/login", userHandler.Login)
 	users.GET("/logind", userHandler.Logind)
-	users.GET("/multi-authenticate", userHandler.MultiAuthenticate)
+	users.POST("/multi-authenticate", userHandler.MultiAuthenticate)
+	users.POST("/multi-authenticate-jwt", userHandler.MultiAuthenticateAndGetJWT)
 
 	e.Logger.Fatal(e.Start(":8080"))
 }
